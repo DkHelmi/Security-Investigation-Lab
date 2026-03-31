@@ -65,8 +65,11 @@ Semua monitoring sudah ada sebelum attacker mulai. Tidak ada config change di te
 - Credentials valid ditemukan: `userAlpha:P@ssw0rd123!`, `userBeta:P@ssw0rd123!`
 - **Alert: Rule 92657 level 6 - Successful Remote Logon (NTLM) dari 192.168.30.200**
 
-![CME Spray Success](../evidence/rdp-02-cme-spray-success.png)
-*crackmapexec konfirmasi [+] credentials valid untuk userAlpha dan userBeta*
+![Successful Logon Detail Top](../evidence/wazuh-04-successful-logon-detail1.png)
+*Alert 92657 - ipAddress 192.168.30.200, targetUserName userAlpha, workstationName kalidhika*
+
+![Successful Logon Detail Bottom](../evidence/wazuh-04-successful-logon-detail2.png)
+*Rule detail - spray berhasil, MITRE T1078.002 Domain Accounts*
 
 **[T+8] RDP Session Established ke WKS01**
 - Source: 192.168.30.200
@@ -74,9 +77,6 @@ Semua monitoring sudah ada sebelum attacker mulai. Tidak ada config change di te
 - Method: RDP (port 3389)
 - **Alert: Rule 92653 level 3 - User LAB\userAlpha logged via RDP from 192.168.30.200**
 - **Alert: Rule 67028 - Special privileges assigned to new logon**
-
-![Initial Access RDP](../evidence/rdp-03-initial-access-success.png)
-*Desktop WKS01 - whoami confirm sesi aktif sebagai lab\useralpha*
 
 ---
 
@@ -92,26 +92,32 @@ Semua monitoring sudah ada sebelum attacker mulai. Tidak ada config change di te
 - **Alert: Level 6 - Registry entry to be executed on next logon was modified** ← missed saat triage
 - **Alert: Level 10 - Value added to registry key has Base64-like pattern** ← missed saat triage
 
-![Registry Run Key](../evidence/persist-01-registry-runkey.png)
-*WindowsUpdateHelper entry terkonfirmasi di registry - persistence aktif*
+![Registry Run Key Alert](../evidence/wazuh-06-registry-runkey-detail1.png)
+*Alert 92302 - targetObject HKCU\...\Run\WindowsUpdateHelper, payload powershell hidden, user LAB\userAlpha*
+
+![Regedit Confirmation](../evidence/wks01-regedit-runkey-detail.png)
+*Konfirmasi langsung di WKS01 - full payload WindowsUpdateHelper masih aktif di registry*
 
 ---
 
 ### Fase 4 - Lateral Movement
 
 **[T+15] WinRM Connection ke DC01**
-- Source: WKS01 (diinisiasi dari sesi userAlpha)
+- Source: 192.168.30.200
 - Target: DC01 / 192.168.30.100 port 5985
 - Credential: `userAlpha:P@ssw0rd123!` (credential yang sama)
 - **Alert: Rule 92657 level 6 - Successful Remote Logon (NTLM) ke DC01**
 - **Alert: Rule 92052 level 4 - Windows command prompt started by abnormal process (DC01)**
 
-![WinRM DC01 Access](../evidence/lateral-01-winrm-dc01-access.png)
-*evil-winrm shell di DC01 - lateral movement berhasil dengan credential yang sama*
+![WinRM Logon Alert](../evidence/wazuh-08-winrm-dc01-logon-detail1.png)
+*Alert 92652 - Successful Remote Logon NTLM dari 192.168.30.200, jam 07:49*
 
 **[T+16] Executable File Dropped di DC01**
 - **Alert: Rule 92217 level 15 - Executable file dropped in folder commonly used by malware (DC01)** ← missed saat triage
-- Kemungkinan terkait tool credential dumping
+- Kemungkinan artifact dari WinRM session (PSScriptPolicyTest)
+
+![Executable Dropped DC01](../evidence/wazuh-07-executable-dropped-dc01-detail1.png)
+*Alert 92213 level 15 - targetFilename PSScriptPolicyTest di DC01, image wsmprovhost.exe (WinRM process), user LAB\userAlpha*
 
 ---
 
@@ -125,10 +131,7 @@ Semua monitoring sudah ada sebelum attacker mulai. Tidak ada config change di te
   - `net group "Domain Admins" /domain` → Domain Admins: hanya Administrator
   - `net user /domain` → users: Administrator, Guest, krbtgt, userAlpha, userBeta
 
-![DC01 Domain Recon](../evidence/lateral-02-dc01-domain-recon.png)
-*Output domain recon - userAlpha bukan Domain Admin, path eskalasi tertutup*
-
-**Temuan attacker:** userAlpha bukan Domain Admin, tidak ada akun lain yang bisa di-compromise dengan credential yang dimiliki.
+**Temuan investigator:** dari rekonstruksi Sysmon process creation, attacker jalankan domain enumeration standard. Hasilnya: userAlpha bukan Domain Admin, tidak ada path eskalasi yang tersedia.
 
 ---
 
