@@ -16,34 +16,32 @@ Yang menarik - persistence-nya ada alertnya di Wazuh (level 10), tapi missed saa
 
 Password spray via SMB (port 445) ke WKS01. Credentials `userAlpha:P@ssw0rd123!` dan `userBeta:P@ssw0rd123!` berhasil didapat.
 
-## Attacker Objective
-
-Establish persistence, lateral movement ke DC01, credential harvesting.
-
 ## Outcome
 
-- Password spray → **terdeteksi** (alert 60204, trigger triage)
-- Initial access via RDP → **terdeteksi** (alert 92657, 92653)
-- Lateral movement ke DC01 via WinRM → **terdeteksi** (alert 92652, 92213)
-- Persistence via registry Run key → **alert ada, missed saat triage** (alert 92041, 92302)
-- Credential dump attempt → **gagal** (userAlpha bukan admin)
-- Credentials userAlpha dan userBeta → **compromised**, diwarisi ke INC-002
+| Aktivitas | Terdeteksi? |
+|-----------|-------------|
+| Password spray via SMB | ✅ Ya (alert 60204, trigger triage) |
+| Initial access via RDP | ✅ Ya (alert 92657, 92653) |
+| Lateral movement ke DC01 via WinRM | ✅ Ya (alert 92652, 92213) |
+| Persistence via registry Run key | ⚠️ Alert ada, missed saat triage |
+| Credential dump attempt | ✅ Gagal (userAlpha bukan admin) |
+| Credentials userAlpha & userBeta | ❌ Compromised, diwarisi ke INC-002 |
 
 ## Folder Structure
 
 ```
 INC-001-rdp-intrusion/
-├── case-file/          # Investigator notes - dokumen utama
-├── evidence/           # Screenshot investigator POV (Wazuh, regedit, Event Log)
-├── attacker-logs/      # Screenshot attacker POV (untuk referensi lab)
-└── lab-setup/          # Topology dan konfigurasi lab
+├── case-file/          # Investigator notes
+├── evidence/           # Screenshot investigator POV (Wazuh, regedit)
+├── attacker-logs/      # Screenshot attacker POV (referensi lab)
+└── lab-setup/          # Topology dan konfigurasi
 ```
 
 ## Case Files
 
 | File | Isi |
 |------|-----|
-| [01-alert-triage](./case-file/01-alert-triage.md) | Alert pertama, bagaimana membedakan spray vs brute force, initial assessment |
+| [01-alert-triage](./case-file/01-alert-triage.md) | Alert pertama, membedakan spray vs brute force, initial assessment |
 | [02-investigation](./case-file/02-investigation.md) | Pivot dari alert, rekonstruksi langkah demi langkah, dead ends |
 | [03-timeline](./case-file/03-timeline.md) | Kronologi berdasarkan timestamp Wazuh |
 | [04-mitre-mapping](./case-file/04-mitre-mapping.md) | MITRE ATT&CK mapping dengan konteks lab |
