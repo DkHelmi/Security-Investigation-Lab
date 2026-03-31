@@ -14,8 +14,8 @@ Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali 
 
 | Case | Deskripsi | Status |
 |------|-----------|--------|
-| [INC-001-rdp-intrusion](./INC-001-rdp-intrusion/) | RDP brute force, lateral movement, persistence | In Progress |
-| [INC-002-c2-beaconing](./INC-002-c2-beaconing/) | C2 beaconing via backdoor INC-001 | Planned |
+| [INC-001-rdp-intrusion](./INC-001-rdp-intrusion/) | Password spray via SMB, lateral movement ke DC01 via WinRM, persistence via registry Run key | Completed |
+| [INC-002-c2-beaconing](./INC-002-c2-beaconing/) | C2 beaconing via persistence yang ditinggal INC-001 | Planned |
 | [INC-003-domain-dominance](./INC-003-domain-dominance/) | Living off the land, domain dominance | Planned |
 
 ## Skill Modules
@@ -36,3 +36,11 @@ Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali 
 - **Attacker:** Kali Linux
 
 Network: `192.168.30.0/24` Host-Only VirtualBox
+
+---
+
+## Pendekatan
+
+Setiap case dimulai dari alert Wazuh, bukan dari tool atau teknik attacker. Investigasi berjalan dari alert → pivot → rekonstruksi aktivitas → conclusion. Format dokumen sengaja tidak kaku - ditulis sebagai real-time investigator notes, bukan laporan formal.
+
+Attacker POV (tool output, terminal) disimpan di folder `attacker-logs/` per case sebagai referensi lab. Yang masuk ke case file hanya evidence dari sisi investigator: Wazuh alerts, Sysmon logs, Windows Event Log, dan konfirmasi langsung di host.
