@@ -26,6 +26,9 @@ Awalnya saya pikir mungkin service account misconfigured, atau user yang lupa pa
 
 Pola ini lebih mirip credential spray daripada brute force. Seseorang sedang coba-coba kombinasi credential ke SMB WKS01.
 
+![Wazuh Campaign Alerts](../evidence/wazuh-02-campaign-alerts.png)
+*Alert dashboard Wazuh selama campaign berlangsung - terlihat cluster logon failure diikuti logon success*
+
 ---
 
 ## Triage Awal - Seberapa Serius?
@@ -36,6 +39,9 @@ Tiga pertanyaan yang saya kejar duluan:
 
 Ya. Rule 92657 muncul - *Successful Remote Logon* dari 192.168.30.200, akun `LAB\userAlpha`, method NTLM. Credential spray berhasil. Ini langsung naikkan prioritas case ini.
 
+![CME Spray Success](../evidence/rdp-02-cme-spray-success.png)
+*crackmapexec konfirmasi credentials valid: userAlpha dan userBeta*
+
 **2. userAlpha akun sensitif?**
 
 Belum tahu di titik ini. Perlu dicek lebih lanjut. Default posture: treat as compromised sampai terbukti sebaliknya.
@@ -43,6 +49,9 @@ Belum tahu di titik ini. Perlu dicek lebih lanjut. Default posture: treat as com
 **3. Ada aktivitas lanjutan setelah logon berhasil?**
 
 Rule 92653 muncul - *User logged via RDP* dari 192.168.30.200. Jadi bukan cuma autentikasi, tapi ada sesi aktif ke WKS01. Cukup untuk buka case.
+
+![Initial Access RDP](../evidence/rdp-03-initial-access-success.png)
+*Sesi RDP aktif di WKS01 sebagai userAlpha - whoami confirm identity*
 
 ---
 

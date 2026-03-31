@@ -40,6 +40,9 @@ Dari sini saya mulai curiga ada reconnaissance yang berjalan. Tapi saya tidak pu
 
 Saya coba cari Sysmon event 1 (process creation) yang terkait userAlpha di WKS01 sekitar timeframe logon. Hasilnya tidak banyak yang conclusive dari WKS01 side - attacker tampaknya tidak lama di sini, atau aktivitas recon-nya tidak generate alert yang significant di WKS01.
 
+![Port Scan Result](../evidence/recon-01-portscan-result.png)
+*Hasil nmap dari attacker - dari sini mereka tahu WKS01 buka 445 dan 3389, DC01 buka 5985*
+
 Kemungkinan dua hal: mereka langsung cari jalan ke sistem lain, atau mereka recon secara pasif (lihat-lihat drive, folder) yang tidak generate process creation event.
 
 Saya putuskan pivot ke arah yang berbeda: cek apakah ada outbound connection dari WKS01 ke sistem lain di jaringan setelah logon userAlpha.
@@ -62,6 +65,9 @@ Alert 92052 muncul lagi di konteks DC01 - *command prompt started by abnormal pr
 
 Di titik ini, attacker sudah punya interactive shell di DC01 sebagai `LAB\userAlpha`.
 
+![WinRM DC01 Access](../evidence/lateral-01-winrm-dc01-access.png)
+*evil-winrm berhasil dapat shell di DC01 sebagai lab\useralpha*
+
 ### Apa yang Dilakukan di DC01?
 
 Dari Sysmon dan Wazuh alert cluster di DC01, saya rekonstruksi beberapa command yang jalan:
@@ -70,6 +76,9 @@ Dari Sysmon dan Wazuh alert cluster di DC01, saya rekonstruksi beberapa command 
 - `hostname` - verify mereka di mesin yang benar
 - `net group "Domain Admins" /domain` - enumerasi siapa yang admin domain
 - `net user /domain` - list semua domain user
+
+![DC01 Domain Recon](../evidence/lateral-02-dc01-domain-recon.png)
+*Output domain recon di DC01 - Domain Admins hanya Administrator, userAlpha bukan admin*
 
 Hasilnya dari domain recon: Domain Admins cuma Administrator. Domain users: Administrator, Guest, krbtgt, userAlpha, userBeta. userAlpha tidak ada di Domain Admins - mereka stuck sebagai standard domain user bahkan di DC01.
 
@@ -96,6 +105,9 @@ Saat saya lagi rekonstruksi aktivitas di WKS01 (bukan DC01), saya akhirnya lihat
 Lokasi: HKCU\Software\Microsoft\Windows\CurrentVersion\Run di WKS01, user context userAlpha.
 
 Dari Sysmon registry event: value name `WindowsUpdateHelper`, data-nya command powershell dengan `-WindowStyle Hidden`. Ini persistence via registry Run key. Tidak butuh admin privilege karena HKCU (per-user, bukan HKLM).
+
+![Registry Run Key](../evidence/persist-01-registry-runkey.png)
+*Registry Run key WindowsUpdateHelper terkonfirmasi di WKS01 - powershell hidden masih aktif sampai sekarang*
 
 Alert level 10 (Base64-like pattern di registry value) juga muncul terkait entry yang sama - saya missed ini waktu triage.
 
