@@ -8,9 +8,9 @@
 
 ## Starting Point
 
-Dari triage: credential spray dari 192.168.30.200 berhasil, userAlpha masuk ke WKS01 via RDP. Pertanyaan sekarang - apa yang mereka lakukan setelah masuk?
+Dari triage: password spray dari 192.168.30.200 berhasil, userAlpha masuk ke WKS01 via RDP. Pertanyaan sekarang - apa yang mereka lakukan setelah masuk?
 
-Pivot pertama: cari aktivitas userAlpha di WKS01 setelah timestamp logon success.
+Pivot pertama: cari aktivitas userAlpha di WKS01 setelah timestamp logon success (07:25:13).
 
 ---
 
@@ -18,31 +18,27 @@ Pivot pertama: cari aktivitas userAlpha di WKS01 setelah timestamp logon success
 
 ### Logon Confirmed
 
-Alert 92653 confirm RDP session dari 192.168.30.200 ke WKS01 sebagai `LAB\userAlpha`. NTLM authentication (alert 92657 muncul bersamaan). Ini bukan pass-the-hash - attacker punya plaintext credential dari spray tadi.
+Alert 92657 jam 07:25:13 confirm logon success dari 192.168.30.200 ke WKS01 sebagai `LAB\userAlpha`, method NTLM. Alert 92653 muncul bersamaan - user logged via RDP. Ini bukan pass-the-hash, attacker punya plaintext credential dari spray tadi.
 
 Saat ini saya masih asumsi userAlpha adalah standard domain user. Perlu dicek apakah dia punya local admin di WKS01.
 
 ### Cek Privilege userAlpha
 
-Dari Sysmon logs post-logon: tidak ada escalation attempt yang jelas terdeteksi. Tidak ada `net localgroup administrators` atau sejenisnya dari konteks userAlpha di WKS01 yang muncul. Saya cek Wazuh - alert 67028 (special privileges assigned) muncul, tapi ini normal behavior untuk beberapa tipe logon, bukan necessarily privilege escalation.
+Dari Wazuh - alert 67028 (special privileges assigned) muncul di sekitar waktu yang sama. Ini saya cek dulu - tapi ternyata 67028 adalah behavior normal untuk tipe logon tertentu, bukan necessarily privilege escalation. Tidak ada alert yang menunjukkan escalation attempt eksplisit seperti penggunaan `net localgroup administrators`.
 
-**Kesimpulan sementara:** userAlpha kemungkinan standard user, tidak ada local admin di WKS01. Tapi masih worth dicek apakah mereka coba sesuatu yang lain.
+**Kesimpulan sementara:** userAlpha kemungkinan standard user, tidak ada eskalasi privilege di WKS01. Tapi masih perlu cek aktivitas lanjutan.
 
 ### Aktivitas Command Prompt
 
-Alert 92052 muncul - *Windows command prompt started by abnormal process*. Ini menarik. Artinya ada cmd.exe atau powershell.exe yang dijalankan dari parent process yang tidak biasa dalam konteks sesi userAlpha.
-
-Dari sini saya mulai curiga ada reconnaissance yang berjalan. Tapi saya tidak punya detail command-nya dari alert ini saja - perlu pivot ke Sysmon process creation logs untuk lihat apa yang dijalankan.
+Alert 92052 muncul - *Windows command prompt started by abnormal process*. Artinya ada cmd.exe atau powershell.exe yang dijalankan dari parent process yang tidak lazim dalam konteks sesi userAlpha. Dari sini saya mulai curiga ada reconnaissance yang berjalan. Tapi detail command-nya tidak langsung kelihatan dari alert ini saja.
 
 ---
 
-## Dead End Pertama - Mencari Recon Activity di WKS01
+## Dead End Pertama - Recon Activity di WKS01
 
-Saya coba cari Sysmon event 1 (process creation) yang terkait userAlpha di WKS01 sekitar timeframe logon. Hasilnya tidak banyak yang conclusive dari WKS01 side - attacker tampaknya tidak lama di sini, atau aktivitas recon-nya tidak generate alert yang significant di WKS01.
+Saya coba cari Sysmon Event ID 1 (process creation) yang terkait userAlpha di WKS01 sekitar timeframe logon. Hasilnya tidak banyak yang conclusive dari WKS01 side - tidak ada command enumeration yang significant terekam di sini.
 
-Kemungkinan dua hal: mereka langsung cari jalan ke sistem lain, atau mereka recon secara pasif (lihat-lihat drive, folder) yang tidak generate process creation event.
-
-Saya putuskan pivot ke arah yang berbeda: cek apakah ada outbound connection dari WKS01 ke sistem lain di jaringan setelah logon userAlpha.
+Kemungkinan dua hal: mereka langsung cari jalan ke sistem lain, atau aktivitas mereka di WKS01 tidak generate alert yang cukup spesifik untuk di-pivot. Saya putuskan cek arah lain: apakah ada koneksi outbound dari WKS01 ke sistem lain setelah logon userAlpha.
 
 ---
 
@@ -50,104 +46,111 @@ Saya putuskan pivot ke arah yang berbeda: cek apakah ada outbound connection dar
 
 ### Trail ke DC01
 
-Alert 92657 muncul lagi - tapi kali ini berbeda. *Successful Remote Logon* dengan NTLM, user yang sama (`LAB\userAlpha`), tapi target-nya DC01 (192.168.30.100), bukan WKS01. Timestamp-nya setelah logon RDP ke WKS01.
+Alert 92657 muncul lagi - tapi kali ini berbeda. *Successful Remote Logon* dengan NTLM, user yang sama (`LAB\userAlpha`), timestamp 07:49, dan yang ini terekam di konteks koneksi baru dari 192.168.30.200. Ada juga alert 92652 yang muncul bersamaan.
 
-Ini konfirmasi lateral movement. Attacker pakai credential userAlpha yang sama untuk masuk ke DC01.
+Ini konfirmasi ada sesi baru yang dibuka setelah initial RDP. Dari port yang terlibat dan alert 92052 yang muncul di DC01 - *command prompt started by abnormal process* - saya pivot ke DC01.
 
-**Port yang digunakan:** 5985 (WinRM). Mereka tidak coba RDP ke DC01 - langsung WinRM. Ini menunjukkan attacker sudah tahu atau asumsi WinRM aktif di DC01 (mungkin dari recon nmap awal).
+**Port yang digunakan:** 5985 (WinRM). Attacker tidak coba RDP ke DC01, langsung WinRM. Ini menunjukkan mereka sudah tahu atau asumsi WinRM aktif di DC01 - kemungkinan informasi ini dari recon nmap di awal.
 
-### Akses DC01
+### Akses DC01 Confirmed
 
-Alert 92052 muncul lagi di konteks DC01 - *command prompt started by abnormal process*. Kali ini di domain controller. Ini lebih serius daripada yang sama di WKS01.
-
-Di titik ini, attacker sudah punya interactive shell di DC01 sebagai `LAB\userAlpha`.
+Alert 92052 muncul di DC01 - *command prompt started by abnormal process*. Ini lebih serius dari yang sama di WKS01 tadi karena ini di domain controller.
 
 ![WinRM Logon Alert Top](../evidence/wazuh-08-winrm-dc01-logon-detail1.png)
-*Alert 92652 - Successful Remote Logon dari 192.168.30.200, NTLM, jam 07:49 - WinRM session aktif*
+*Alert 92652 - Successful Remote Logon dari 192.168.30.200, NTLM, jam 07:49 - sesi aktif ke DC01*
+
+Di titik ini saya konfirmasi: ada interactive session aktif di DC01 sebagai `LAB\userAlpha`.
 
 ### Apa yang Dilakukan di DC01?
 
-Dari Sysmon dan Wazuh alert cluster di DC01, saya rekonstruksi beberapa command yang jalan:
+Ini yang perlu saya jelaskan sumber evidence-nya.
 
-- `whoami` - verify identity post-logon (standar)
-- `hostname` - verify mereka di mesin yang benar
-- `net group "Domain Admins" /domain` - enumerasi siapa yang admin domain
+Dari Sysmon Event ID 1 (process creation) di DC01, saya lihat net.exe dieksekusi beberapa kali dalam konteks sesi userAlpha. Parent process-nya adalah `wsmprovhost.exe` - ini adalah WinRM host process, confirm bahwa execution ini dari dalam WinRM session. Kombinasi parent-child process ini yang jadi dasar rekonstruksi command.
+
+Command yang terekam dari Sysmon process creation DC01:
+- `net group "Domain Admins" /domain` - enumerasi member Domain Admins
 - `net user /domain` - list semua domain user
 
-Hasilnya dari domain recon: Domain Admins cuma Administrator. Domain users: Administrator, Guest, krbtgt, userAlpha, userBeta. userAlpha tidak ada di Domain Admins - mereka stuck sebagai standard domain user bahkan di DC01.
+Untuk `whoami` dan `hostname`, ini rekonstruksi dari konteks - typical first commands dalam WinRM session baru, dan muncul di Sysmon tapi tidak generate alert Wazuh yang spesifik karena bukan process yang suspicious.
 
-**Ini penting:** attacker punya akses ke DC01, tapi privilege-nya terbatas. Mereka tidak bisa dump credentials (secretsdump akan butuh admin), tidak bisa modify domain objects.
+Hasilnya bisa saya rekonstruksi dari attacker-logs yang ada sebagai corroboration: Domain Admins cuma Administrator, domain users: Administrator, Guest, krbtgt, userAlpha, userBeta. userAlpha tidak ada di Domain Admins.
+
+**Ini penting:** attacker punya shell di DC01, tapi privilege-nya terbatas. Mereka tidak bisa dump credentials, tidak bisa modify domain objects.
 
 ---
 
 ## Cek Credential Access Attempt
 
-Alert 92217 level 15 - *Executable file dropped in folder commonly used by malware* - muncul di DC01. Ini yang harusnya saya pivot ke sini lebih awal waktu triage. Waktu investigation ini, saya baru re-notice alert ini dan mulai cek.
+Alert 92213 level 15 - *Executable file dropped in folder commonly used by malware* - muncul di DC01 jam 07:36:25, sebelum lateral movement yang saya track tadi.
 
-Kemungkinan ini terkait dengan impacket atau tool credential dumping yang dicoba. Tapi dari hasil investigasi, tidak ada credential dump yang berhasil - tidak ada alert terkait LSASS access atau Ntds.dit copy yang successful.
+![Executable Dropped DC01](../evidence/wazuh-07-executable-dropped-dc01-detail1.png)
+*Alert 92213 level 15 - targetFilename PSScriptPolicyTest di DC01, image wsmprovhost.exe, user LAB\userAlpha*
 
-Hipotesis: attacker coba secretsdump atau sejenisnya, gagal karena userAlpha bukan admin, tapi file executable sempat dropped ke disk sebelum execution gagal atau dibatalkan.
+![Executable Dropped Rule Detail](../evidence/wazuh-07-executable-dropped-dc01-detail2.png)
+*Level 15, MITRE T1105 Ingress Tool Transfer - ini yang harusnya saya pivot lebih awal*
+
+Dari detail alert: `targetFilename` adalah `__PSScriptPolicyTest_psm345gv.ic2.ps1` di folder Temp userAlpha, dan `image`-nya `wsmprovhost.exe`. Ini bukan malware beneran - ini artifact yang dibuat otomatis oleh WinRM/evil-winrm saat establish connection untuk test PowerShell script policy. Tapi alertnya tetap level 15 karena file .ps1 dropped ke folder Temp oleh process yang tidak lazim.
+
+Dari hasil investigasi keseluruhan: tidak ada credential dump yang berhasil. Tidak ada alert terkait LSASS access atau Ntds.dit copy. Attacker kemungkinan coba secretsdump tapi gagal karena userAlpha bukan admin di DC01.
 
 ---
 
 ## Persistence - Yang Saya Temukan Belakangan
 
-Saat saya lagi rekonstruksi aktivitas di WKS01 (bukan DC01), saya akhirnya lihat alert yang sebelumnya saya lewati:
+Saat saya sedang rekonstruksi aktivitas di WKS01, saya akhirnya lihat alert yang sebelumnya saya lewati:
 
-**Level 6 - Registry entry to be executed on next logon was modified**
+**Alert 92302 level 6 - Registry entry to be executed on next logon was modified**  
+**Alert 92041 level 10 - Value added to registry key has Base64-like pattern**
 
-Lokasi: HKCU\Software\Microsoft\Windows\CurrentVersion\Run di WKS01, user context userAlpha.
-
-Dari Sysmon registry event: value name `WindowsUpdateHelper`, data-nya command powershell dengan `-WindowStyle Hidden`. Ini persistence via registry Run key. Tidak butuh admin privilege karena HKCU (per-user, bukan HKLM).
+Keduanya timestamp 07:46:51, host WKS01, user context userAlpha.
 
 ![Registry Base64 Alert Top](../evidence/wazuh-05-registry-base64-detail1.png)
-*Alert 92041 level 10 - commandLine reg.exe add HKCU\...\Run\WindowsUpdateHelper, parentUser LAB\userAlpha*
+*Alert 92041 - commandLine: reg.exe add HKCU\...\Run\WindowsUpdateHelper, parentImage: powershell.exe, parentUser: LAB\userAlpha*
 
 ![Registry Base64 Alert Bottom](../evidence/wazuh-05-registry-base64-detail2.png)
 *Rule detail - MITRE T1027 Obfuscated Files, T1112 Modify Registry, Defense Evasion*
 
 ![Registry Run Key Alert Top](../evidence/wazuh-06-registry-runkey-detail1.png)
-*Alert 92302 - details: powershell.exe -WindowStyle Hidden, targetObject: HKCU\...\Run\WindowsUpdateHelper, user: LAB\userAlpha*
+*Alert 92302 - details: powershell.exe -WindowStyle Hidden, targetObject: HKCU\...\Run\WindowsUpdateHelper, ruleName: T1060,RunKey*
 
 ![Registry Run Key Alert Bottom](../evidence/wazuh-06-registry-runkey-detail2.png)
 *Rule detail - MITRE T1547.001 Registry Run Keys, Persistence*
 
-Konfirmasi langsung di host - entry masih aktif di WKS01:
+Dari alert 92041, `commandLine`-nya sangat eksplisit: `reg.exe add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v WindowsUpdateHelper /t REG_SZ /d "powershell.exe -WindowStyle Hidden -Command 'Start-Sleep 1'" /f`. Tidak perlu interpretasi - ini langsung ketahuan persistence mechanism-nya.
+
+Konfirmasi langsung di host:
 
 ![Regedit Run Key](../evidence/wks01-regedit-runkey.png)
-*Regedit WKS01 sebagai userAlpha - WindowsUpdateHelper terlihat di HKCU\...\Run*
+*Regedit WKS01 login sebagai userAlpha - WindowsUpdateHelper kelihatan di HKCU\...\Run*
 
 ![Regedit Run Key Detail](../evidence/wks01-regedit-runkey-detail.png)
-*Full payload: powershell.exe -WindowStyle Hidden -Command 'Start-Sleep 1' - persistence masih aktif*
+*Full payload: powershell.exe -WindowStyle Hidden -Command 'Start-Sleep 1' - entry masih aktif*
 
-Alert level 10 (Base64-like pattern di registry value) juga muncul terkait entry yang sama - saya missed ini waktu triage.
-
-**Jadi attacker pasang persistence di WKS01 sebelum atau selama mereka pivot ke DC01.** Timeline pastinya ada di 03-timeline.md.
+Persistence ini tidak butuh admin privilege karena HKCU (per-user). Entry akan execute setiap kali userAlpha logon ke WKS01.
 
 ---
 
-## Rekonstruksi Lengkap Aktivitas Attacker
+## Rekonstruksi Lengkap
 
-Dari semua yang terkumpul, ini yang bisa saya rekonstruksi:
+Dari semua evidence yang terkumpul:
 
-1. Attacker (192.168.30.200) lakukan credential spray ke WKS01 via SMB port 445
-2. Berhasil dapat `userAlpha:P@ssw0rd123!` (dan kemungkinan userBeta juga)
-3. Masuk WKS01 via RDP menggunakan userAlpha
-4. Pasang persistence di HKCU Run key (WindowsUpdateHelper) - powershell hidden
-5. Lateral movement ke DC01 via WinRM (port 5985) menggunakan credential yang sama
-6. Lakukan domain recon di DC01 - whoami, net group Domain Admins, net user /domain
-7. Attempt credential access (kemungkinan secretsdump) - gagal, userAlpha bukan admin
-8. Attacker stuck, tidak ada eskalasi lebih lanjut yang terdeteksi
+1. Password spray dari 192.168.30.200 ke WKS01 via SMB (07:17) → berhasil dapat `userAlpha`
+2. Masuk WKS01 via RDP menggunakan credential userAlpha (07:25)
+3. Pasang persistence di HKCU Run key - `WindowsUpdateHelper` (07:46)
+4. Lateral movement ke DC01 via WinRM (07:49)
+5. Domain recon di DC01 - enumerate Domain Admins dan user list
+6. Credential access attempt di DC01 → gagal, userAlpha bukan admin
+7. Attacker stuck, tidak ada aktivitas eskalasi lebih lanjut yang terdeteksi
 
-**Status attacker akhir:** punya persistence di WKS01, credentials userAlpha dan userBeta compromised, tapi gagal escalate privilege. Domain Admins tetap aman.
+**Status akhir:** persistence aktif di WKS01, credentials userAlpha dan userBeta compromised, tapi Domain Admins tidak terdampak.
 
 ---
 
 ## Yang Masih Belum Jelas
 
-- Apakah ada aktivitas lain di WKS01 yang tidak terdeteksi (living off the land techniques)
-- Exact timestamp persistence dipasang relatif terhadap lateral movement ke DC01
-- Apakah userBeta juga digunakan untuk sesuatu atau cuma userAlpha yang dipakai
+- Apakah ada aktivitas lain di WKS01 yang tidak terdeteksi (living off the land)
+- Apakah userBeta juga digunakan atau hanya userAlpha
+- Tool spesifik yang digunakan untuk credential access attempt di DC01
 
 Ini saya catat sebagai investigative gaps, bukan necessarily detection failures.
 
