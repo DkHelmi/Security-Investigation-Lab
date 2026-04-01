@@ -10,7 +10,7 @@
 
 Investigasi dimulai dari alert Wazuh yang mendeteksi cluster logon failures dari satu IP ke WKS01. Setelah di-trace, ditemukan attacker lakukan password spray via SMB, berhasil compromise userAlpha, masuk via RDP, lateral movement ke DC01 via WinRM, dan pasang persistence via registry Run key.
 
-Yang menarik - persistence-nya ada alertnya di Wazuh (level 10), tapi missed saat triage karena tenggelam di noise waktu investigator sedang fokus ke trail lateral movement. Ini yang jadi salah satu detection gap utama di case ini, dan setup untuk INC-002.
+Yang menarik, persistence-nya ada alertnya di Wazuh (level 10), tapi missed saat triage karena tenggelam di noise waktu investigator sedang fokus ke trail lateral movement. Ini yang jadi salah satu detection gap utama di case ini.
 
 ## Entry Point
 
@@ -25,16 +25,13 @@ Password spray via SMB (port 445) ke WKS01. Credentials `userAlpha:P@ssw0rd123!`
 | Lateral movement ke DC01 via WinRM | ✅ Ya (alert 92652, 92213) |
 | Persistence via registry Run key | ⚠️ Alert ada, missed saat triage |
 | Credential dump attempt | ✅ Gagal (userAlpha bukan admin) |
-| Credentials userAlpha & userBeta | ❌ Compromised, diwarisi ke INC-002 |
 
 ## Folder Structure
-
 ```
 INC-001-rdp-intrusion/
 ├── case-file/          # Investigator notes
 ├── evidence/           # Screenshot investigator POV (Wazuh, regedit)
-├── attacker-logs/      # Screenshot attacker POV (referensi lab)
-└── lab-setup/          # Topology dan konfigurasi
+└── attacker-logs/      # Screenshot attacker POV (referensi lab)
 ```
 
 ## Case Files

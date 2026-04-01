@@ -1,12 +1,12 @@
 # Security Investigation Lab
 
-Repo ini dokumentasi investigasi insiden yang saya jalankan di lab pribadi. Bukan tutorial, bukan walkthrough - ini catatan kerja saya sebagai investigator NFIR yang trace aktivitas attacker dari alert sampai conclusion.
+Repo ini dokumentasi investigasi insiden yang saya jalankan di lab pribadi. Bukan tutorial maupun walkthrough, ini catatan kerja saya sebagai investigator yang trace aktivitas attacker dari alert sampai conclusion.
 
-Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali Linux. Semua campaign dijalankan sendiri - saya yang generate aktivitas attacker, lalu investigasi dari sisi defender.
+Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali Linux. saya generate aktivitas attacker, lalu melakukan investigasi dari sisi defender.
 
 **Investigator:** Hardhika Helmi (DkHelmi)  
 **Focus:** Network Forensics & Incident Response  
-**Location:** Semarang, Indonesia
+**Location:** Indonesia
 
 ---
 
@@ -15,20 +15,12 @@ Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali 
 | Case | Scenario | Status |
 |------|----------|--------|
 | [INC-001-rdp-intrusion](./INC-001-rdp-intrusion/) | Password spray via SMB, lateral movement ke DC01 via WinRM, persistence via registry Run key | ✅ Completed |
-| [INC-002-c2-beaconing](./INC-002-c2-beaconing/) | C2 beaconing via persistence dari INC-001 | 📋 Planned |
-| [INC-003-domain-dominance](./INC-003-domain-dominance/) | Living off the land, domain dominance | 📋 Planned |
-
-## Skill Modules
-
-| Module | Deskripsi |
-|--------|-----------|
-| [network-forensics](./network-forensics/) | PCAP analysis, C2 detection, exfil patterns |
-| [network-security-monitoring](./network-security-monitoring/) | Zeek setup dan log analysis |
-| [incident-response](./incident-response/) | Full IR simulation, INC-003 capstone |
 
 ---
 
 ## Lab Environment
+
+Dokumentasi lengkap lab base ada di [lab-base/](./lab-base/).
 
 | Host | IP | OS | Role |
 |------|----|----|------|
@@ -43,10 +35,10 @@ Network: `192.168.30.0/24` Host-Only VirtualBox
 
 ## Pendekatan
 
-Setiap case dimulai dari alert Wazuh, bukan dari tool atau teknik attacker. Investigasi berjalan dari alert → pivot → rekonstruksi aktivitas → conclusion. Format dokumen sengaja tidak kaku - ditulis sebagai real-time investigator notes, bukan laporan formal.
+Setiap case berdiri sendiri dan tidak ada dependency antar case. Masing-masing punya lab snapshot sendiri sebagai starting point.
 
-Attacker POV (tool output, terminal) disimpan di folder `attacker-logs/` per case sebagai referensi lab. Yang masuk ke case file hanya evidence dari sisi investigator: Wazuh alerts, Sysmon logs, Windows Event Log, dan konfirmasi langsung di host.
+Investigasi selalu dimulai dari alert Wazuh, bukan dari tool atau teknik attacker. dan untuk Attacker POV (tool output, terminal) disimpan di folder `attacker-logs/` per case sebagai referensi lab.
 
 ---
 
-*Update status case dan penambahan case baru hanya dilakukan di file ini.*
+*Jika ada case baru akan di update segera.*
