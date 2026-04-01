@@ -117,8 +117,8 @@ Ini adalah gap yang significant - dibahas lebih lanjut di 05-detection-gaps.md.
 Dari semua evidence yang berhasil dikumpulkan:
 
 1. Failed attempts itstaff dari 192.168.30.200 mulai **10:35 WIB** - tidak terdeteksi Wazuh (btmp)
-2. Cluster SSH failures masuk ke Wazuh mulai **11:15:28 WIB** (auth.log + Wazuh alert 5760)
-3. Login berhasil pertama **11:14:30 WIB** - sesi sangat singkat, langsung closed (auth.log)
+2. Login berhasil pertama **11:14:30 WIB** - sesi sangat singkat, langsung closed (auth.log)
+3. Cluster SSH failures masuk ke Wazuh mulai **11:15:28 WIB** (auth.log + Wazuh alert 5760)
 4. Login berhasil kedua **11:17:34 WIB** - sesi aktif ~10 menit (Wazuh alert 40112, auth.log)
 5. Disconnect **11:28:11 WIB** (auth.log, Wazuh alert 5502)
 6. Aktivitas selama sesi: **tidak diketahui** - tidak ada logging yang capture

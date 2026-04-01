@@ -124,7 +124,7 @@ Mapping ini bukan checklist yang diisi mekanis. Setiap teknik di sini saya tulis
 
 **Evidence:**
 - Alert 92213 level 15 - Executable dropped di DC01 (07:36:25) - artifact PSScriptPolicyTest dari WinRM session
-- Alert 92652 level 6 - Successful Remote Logon (NTLM) ke area DC01 (07:49:52)
+- Alert 92652 level 6 - Successful Remote Logon (NTLM) ke DC01 (07:49:52)
 - Alert 92052 - Command prompt started by abnormal process di DC01
 
 **Kenapa WinRM berhasil:** userAlpha sudah ada di Remote Management Users group di DC01 sebagai bagian lab setup. Di real environment, membership ini harusnya restricted ke admin saja.

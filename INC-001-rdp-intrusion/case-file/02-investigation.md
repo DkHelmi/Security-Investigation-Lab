@@ -136,9 +136,9 @@ Dari semua evidence yang terkumpul:
 
 1. Password spray dari 192.168.30.200 ke WKS01 via SMB (07:17) → berhasil dapat `userAlpha`
 2. Masuk WKS01 via RDP menggunakan credential userAlpha (07:25)
-3. Pasang persistence di HKCU Run key - `WindowsUpdateHelper` (07:46)
-4. Lateral movement ke DC01 via WinRM (07:49)
-5. Domain recon di DC01 - enumerate Domain Admins dan user list
+3. Lateral movement ke DC01 via WinRM (07:36)
+4. Domain recon di DC01 - enumerate Domain Admins dan user list
+5. Pasang persistence di HKCU Run key - `WindowsUpdateHelper` (07:46)
 6. Credential access attempt di DC01 → gagal, userAlpha bukan admin
 7. Attacker stuck, tidak ada aktivitas eskalasi lebih lanjut yang terdeteksi
 

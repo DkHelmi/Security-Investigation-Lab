@@ -76,7 +76,7 @@ Waktu saya sedang fokus ke credential spray cluster, beberapa alert lain juga ma
 
 - **67028 - Special privileges assigned to new logon** - timing berdekatan dengan logon userAlpha, saya noted tapi belum pivot ke sini
 - **92307 - Service creation in registry** - muncul beberapa kali, saya lewati karena masih fokus rekonstruksi initial access. Ini jadi missed item - bahasnya nanti di 05-detection-gaps.md
-- **92217 level 15 - Executable file dropped in folder commonly used by malware** - muncul di dua host: DC01 dan WKS01. Level 15 harusnya langsung menarik perhatian. Tapi saat itu saya sedang fokus ke lateral movement dan alert ini tenggelam di noise. Juga jadi detection gap.
+- **92213 level 15 - Executable file dropped in folder commonly used by malware** - muncul di dua host: DC01 dan WKS01. Level 15 harusnya langsung menarik perhatian. Tapi saat itu saya sedang fokus ke lateral movement dan alert ini tenggelam di noise. Juga jadi detection gap.
 - **Level 10 - Registry value with Base64-like pattern** - ini yang paling saya sesali missed. Alertnya ada, tapi waktu itu saya tidak connect ke persistence activity. Ceritanya ada di 05-detection-gaps.md.
 
 ---

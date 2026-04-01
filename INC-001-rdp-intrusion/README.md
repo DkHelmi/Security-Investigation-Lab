@@ -24,7 +24,7 @@ Password spray via SMB (port 445) ke WKS01. Credentials `userAlpha:P@ssw0rd123!`
 | Initial access via RDP | ✅ Ya (alert 92657, 92653) |
 | Lateral movement ke DC01 via WinRM | ✅ Ya (alert 92652, 92213) |
 | Persistence via registry Run key | ⚠️ Alert ada, missed saat triage |
-| Credential dump attempt | ✅ Gagal (userAlpha bukan admin) |
+| Credential dump attempt | ⚠️ Attempt gagal (userAlpha bukan admin), partial alert dari artifact |
 
 ## Folder Structure
 ```

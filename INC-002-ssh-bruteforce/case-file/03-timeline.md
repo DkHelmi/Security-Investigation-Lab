@@ -108,8 +108,8 @@ Tidak ada log yang capture aktivitas selama sesi berlangsung. Apa yang dilakukan
 
 ```
 10:35 WIB    [PRE]      Failed attempts itstaff dari 192.168.30.200 (btmp, tidak terdeteksi Wazuh)
-11:15:28 WIB [ACCESS]   Cluster SSH failures terdeteksi (ALERT 5760, 5710, 5763)
 11:14:30 WIB [ACCESS]   Accepted password - sesi singkat, langsung closed (auth.log)
+11:15:28 WIB [ACCESS]   Cluster SSH failures terdeteksi (ALERT 5760, 5710, 5763)
 11:17:34 WIB [ACCESS]   Accepted password - sesi aktif (ALERT 40112 level 12, 5501)
 11:17-11:28  [UNKNOWN]  Aktivitas selama sesi tidak ter-capture
 11:28:11 WIB [END]      Disconnect + session closed (ALERT 5502, auth.log)
