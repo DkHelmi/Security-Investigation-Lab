@@ -1,9 +1,12 @@
-# Lab Setup - INC-001
+# Lab Base
+
+Dokumentasi infrastruktur lab yang dipakai untuk semua case di Security-Investigation-Lab.
+Setiap case berdiri sendiri dan menggunakan snapshot BASE-clean sebagai starting point.
 
 ## Topology
 
 <p align="center">
-  <img src="./assets/topology.svg" alt="Lab Network Topology" width="100%">
+  <img src="./topology.svg" alt="Lab Network Topology" width="100%">
 </p>
 
 ## Hosts
@@ -15,6 +18,8 @@
 | WKS01 | 192.168.30.101 | Windows 10 22H2 | Workstation |
 | Kali | 192.168.30.200 | Kali Linux | Attacker |
 
+Network: `192.168.30.0/24` Host-Only VirtualBox
+
 ## Domain
 
 - Domain: `lab.local`
@@ -24,12 +29,11 @@
 ## Monitoring Stack
 
 - Wazuh 4.9.2 agent di DC01 dan WKS01
-- Sysmon di DC01 dan WKS01 (service name di DC01: Sysmon64)
-- PowerShell ScriptBlock Logging enabled (registry manual, bukan GPO)
+- Sysmon di DC01 dan WKS01 (service name di DC01: `Sysmon64`)
+- PowerShell ScriptBlock Logging enabled
 - Windows Security, Sysmon, PowerShell Operational logs forwarded ke SIEM
 
 ### Wazuh Log Sources (agent.conf)
-
 ```xml
 <localfile>
   <location>Microsoft-Windows-PowerShell/Operational</location>
@@ -59,26 +63,9 @@
 | 100021 | Suppress Windows logoff (60137) | Suppress |
 | 100022 | Suppress normal logon success (60106) | Suppress |
 | 100023 | Suppress software protection service (60642) | Suppress |
+| 100024 | Suppress Windows DB engine events (60804-60809, 60798) | Suppress |
 
-## Pre-Campaign Setup
+## Snapshots
 
-Semua konfigurasi berikut sudah ada **sebelum** campaign INC-001 dijalankan:
-
-- SMB port 445 di WKS01 di-enable via `Enable-NetFirewallRule SMB-In`
-- userAlpha ditambahkan ke Remote Management Users di DC01 (untuk WinRM)
-- Sysmon dan Wazuh agent running di kedua host
-
-## Attacker Tools
-
-- nmap (reconnaissance)
-- crackmapexec (SMB password spray)
-- xfreerdp (RDP client)
-- evil-winrm (WinRM lateral movement)
-- impacket (credential access attempt - gagal)
-
-## Known Issues Lab
-
-- Wazuh disk full → fix: disable vulnerability-detector di ossec.conf
-- xfreerdp gagal → fix: tambah `/cert:ignore /sec:nla`
-- SMB port 445 WKS01 blocked → fix: `Enable-NetFirewallRule SMB-In`
-- schtasks gagal untuk userAlpha → standard user, attacker fallback ke registry Run key
+Detail snapshot ada di [snapshots.md](./snapshot.md).
+Sebelum mulai case baru, restore semua VM ke snapshot `BASE-clean`.
