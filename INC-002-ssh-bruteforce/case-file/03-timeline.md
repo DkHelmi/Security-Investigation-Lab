@@ -2,113 +2,117 @@
 
 **Case:** INC-002-ssh-bruteforce  
 **Investigator:** Hardhika Helmi  
-**Disusun dari:** Wazuh alerts, auth.log, PAM events
+**Disusun dari:** Wazuh alerts, auth.log, last, wtmp, btmp
 
 ---
 
-## Catatan
+## Catatan Timezone
 
-Timeline ini direkonstruksi dari evidence yang terekam di SIEM dan log - bukan dari POV attacker. Semua timestamp adalah timestamp absolut dari Wazuh alerts.
+Ada dua sumber timestamp di case ini dengan timezone berbeda:
 
-Ada gap antara timestamp Kali (UTC-4) dan timestamp Wazuh (UTC). Timestamp di bawah menggunakan timezone Wazuh (UTC) sebagai acuan utama karena itu yang akan dilihat investigator saat triage.
+| Sumber | Timezone | Contoh |
+|--------|----------|--------|
+| Wazuh alerts | UTC+7 (WIB) | 11:17:34 WIB |
+| auth.log, last, wtmp, btmp | UTC+0 | 04:17:34 UTC |
 
-Fase reconnaissance (nmap) tidak punya timestamp Wazuh karena tidak terdeteksi - ini sendiri adalah finding yang dicatat di 05-detection-gaps.md.
+Keduanya merujuk event yang sama - selisih tepat 7 jam. Timeline di bawah menggunakan **WIB sebagai acuan utama** karena itu yang terlihat di Wazuh saat triage, dengan keterangan UTC di kurung untuk cross-reference ke host logs.
+
+Fase reconnaissance tidak punya timestamp karena tidak terdeteksi sama sekali - dibahas di 05-detection-gaps.md.
 
 ---
 
 ## Kronologi Event
 
-### Fase 0 - Kondisi Lab Sebelum Insiden
+### Aktivitas Awal yang Tidak Terdeteksi Wazuh
 
-**State awal (sebelum 11:15):**
-- SIEM server online, port 22 open dan reachable dari seluruh network segment
-- User itstaff aktif dengan password lemah: `itstaff123`
-- fail2ban tidak terinstall, tidak ada account lockout policy di Linux
-- Wazuh agent berjalan di siemserver (self-monitoring)
-- SSH PasswordAuthentication: yes (default)
+**10:35:57 WIB (03:35:57 UTC) - Failed Attempts Pertama**
+- Sumber: btmp (`/var/log/btmp`)
+- Failed login attempts itstaff dari 192.168.30.200 mulai terekam
+- Tidak ada alert Wazuh untuk window ini
+- Ini menunjukkan ada aktivitas dari IP yang sama jauh sebelum Wazuh mulai alert
 
-Semua kondisi di atas yang membuat serangan ini berhasil.
-
----
-
-### Fase 1 - Reconnaissance (Tidak Terdeteksi)
-
-**Estimasi sebelum 11:15 - Network Discovery**
-- Tidak ada alert Wazuh untuk aktivitas ini
-- Dari konteks: attacker perlu tahu host mana yang aktif dan port apa yang open sebelum mulai brute force
-- Port 22 yang dijadikan target ditemukan dari port scan ke 192.168.30.50
-- Detail: lihat 05-detection-gaps.md
+![wtmp btmp](../evidence/evidence-06-wtmp-btmp.png)
+*btmp - failed attempts itstaff dari 192.168.30.200 mulai 03:35:57 UTC*
 
 ---
 
-### Fase 2 - Brute Force
+### Brute Force Terdeteksi Wazuh
 
-**11:15:28 - Authentication Failures Mulai Masuk**
+**11:15:28 WIB (04:15:28 UTC) - Cluster Failures Masuk**
 - Alert: Rule 5760 - sshd: authentication failed
-- Source: 192.168.30.200 → Target: siemserver port 22
-- Multiple username dicoba: dari Wazuh terlihat mix antara username yang exist (itstaff) dan yang tidak exist (admin, administrator, dll)
-
-**11:15:30 - 11:15:36 - Cluster Failures Berlanjut**
-- Alert: Rule 5710 - sshd: Attempt to login using non-existent user (username tidak ada di sistem)
+- Alert: Rule 5710 - sshd: Attempt to login using non-existent user
 - Alert: Rule 2502 - syslog: User missed the password more than once (level 10)
-- Alert: Rule 5763 - sshd: brute force (level 10) - Wazuh detect brute force pattern dari rate failures
+- Alert: Rule 5763 - sshd: brute force (level 10)
+- Source: 192.168.30.200 → siemserver port 22
+- Rule 5710 muncul berulang - ada username yang dicoba tidak exist di sistem
 
 ![Wazuh Alert Overview](../evidence/evidence-01-wazuh-alerts-overview.png)
-*Cluster alert 5760, 5710, 2502 mulai 11:15 - volume tinggi dalam window sempit*
-
-**Rate serangan:** sekitar 94 attempts/menit berdasarkan attacker-logs. Total 130 kombinasi (10 username x 13 password).
+*Cluster alert 5760, 5710, 5763 mulai 11:15 WIB*
 
 ---
 
-### Fase 3 - Initial Access
+### Initial Access - Login Pertama
 
-**11:17:34 - Login Berhasil**
+**11:14:30 WIB (04:14:30 UTC) - Accepted Password, Sesi Sangat Singkat**
+- Sumber: auth.log
+- `Accepted password for itstaff from 192.168.30.200 port 48808 ssh2`
+- Session opened lalu langsung closed dalam ~1 detik
+- Tidak ter-capture sebagai alert Wazuh yang meaningful
+- Tidak muncul di `last` karena sesi terlalu singkat
+
+![auth.log itstaff](../evidence/evidence-03-authlog-itstaff.png)
+*auth.log - dua accepted password untuk itstaff dalam window berdekatan*
+
+---
+
+### Initial Access - Login Kedua (Yang Ter-capture Wazuh)
+
+**11:17:34 WIB (04:17:34 UTC) - Login Berhasil, Sesi Aktif**
 - Alert: Rule 5501 - PAM: Login session opened
-- Alert: Rule 40112 level 12 - Multiple authentication failures followed by a success ← **ini trigger pivot investigasi**
-- Source: 192.168.30.200 → siemserver
+- Alert: Rule 40112 level 12 - Multiple authentication failures followed by a success ← **trigger pivot investigasi**
+- Source: 192.168.30.200 → siemserver, port 36484
 - Account: itstaff
-- Method: SSH password authentication
 
 ![Alert 40112 Detail](../evidence/evidence-02-alert-40112-detail.png)
-*Rule 40112 - srcip 192.168.30.200, dstuser itstaff, full_log: Accepted password for itstaff from 192.168.30.200 port 36484 ssh2*
+*Rule 40112 - srcip 192.168.30.200, dstuser itstaff, full_log confirm accepted password*
 
-Rule 40112 adalah correlation rule - Wazuh menggabungkan cluster failures sebelumnya dengan successful login ini menjadi satu alert level 12. Tanpa rule ini, investigator harus manual pivot dari failures ke success.
+Konfirmasi dari last dan lastlog:
 
----
-
-### Fase 4 - Discovery di SIEM Server
-
-**11:23:14 - Reconnaissance Post-Compromise**
-- Context: itstaff SSH session aktif
-- Commands yang dijalankan (direkonstruksi dari attacker-logs):
-  - `whoami` → itstaff
-  - `id` → uid=1001(itstaff), tidak ada sudo/admin groups
-  - `uname -a` → Linux siemserver 5.15.0-173-generic
-  - `cat /etc/passwd` → terlihat user aktif: root, dhika, itstaff, socl1, socl2, audit
-  - `ls -la /home` → 5 home directories: audit, dhika, itstaff, socl1, socl2
-  - `ls -la /var/ossec/` → **Permission denied**
-
-Attacker langsung coba `/var/ossec/` setelah melihat daftar user dan home directories - menunjukkan mereka tahu ini Wazuh server. Akses ke directory Wazuh gagal karena itstaff bukan member group yang punya permission ke sana.
+![last lastlog](../evidence/evidence-04-last-lastlog.png)
+*last itstaff - pts/1, 192.168.30.200, 04:17 - 04:28 (00:10)*
 
 ---
 
-### Fase 5 - Logout
+### Aktivitas Selama Sesi - Tidak Diketahui
 
-**11:28:12 - Sesi Ditutup**
+**11:17:34 - 11:28:11 WIB (04:17:34 - 04:28:11 UTC) - Sesi Aktif ~10 Menit**
+- journalctl UID=1001: no entries
+
+![journalctl no entry](../evidence/evidence-05-journalctl-noentry.png)
+*journalctl - tidak ada entries untuk UID=1001 selama window sesi*
+
+Tidak ada log yang capture aktivitas selama sesi berlangsung. Apa yang dilakukan selama ~10 menit ini tidak bisa direkonstruksi dari evidence yang tersedia.
+
+---
+
+### Logout
+
+**11:28:11 WIB (04:28:11 UTC) - Sesi Ditutup**
 - Alert: Rule 5502 - PAM: Login session closed
-- Total durasi sesi: sekitar 10 menit 38 detik
+- auth.log: `Disconnected from user itstaff 192.168.30.200 port 36484`
+- Total durasi sesi: ~10 menit 37 detik
 
 ---
 
 ## Summary
 
 ```
-~11:10       [RECON]    Nmap ping sweep + port scan (tidak terdeteksi)
-11:15:28     [ACCESS]   SSH brute force mulai - cluster failures (ALERT 5760, 5710, 5763)
-11:17:34     [ACCESS]   Login berhasil sebagai itstaff dari 192.168.30.200 (ALERT 40112 level 12)
-11:17:34     [ACCESS]   PAM session opened (ALERT 5501)
-11:23:14     [DISCOVERY] whoami, id, uname, /etc/passwd, ls /home, ls /var/ossec → denied
-11:28:12     [END]      PAM session closed (ALERT 5502) - sesi ~10 menit
+10:35 WIB    [PRE]      Failed attempts itstaff dari 192.168.30.200 (btmp, tidak terdeteksi Wazuh)
+11:15:28 WIB [ACCESS]   Cluster SSH failures terdeteksi (ALERT 5760, 5710, 5763)
+11:14:30 WIB [ACCESS]   Accepted password - sesi singkat, langsung closed (auth.log)
+11:17:34 WIB [ACCESS]   Accepted password - sesi aktif (ALERT 40112 level 12, 5501)
+11:17-11:28  [UNKNOWN]  Aktivitas selama sesi tidak ter-capture
+11:28:11 WIB [END]      Disconnect + session closed (ALERT 5502, auth.log)
 ```
 
 ---

@@ -8,150 +8,123 @@
 
 ## Konteks
 
-Ada perbedaan penting antara dua jenis gap:
+Ada dua jenis gap di case ini:
 
-1. **Alert ada, investigator missed** - Wazuh generate alertnya, tapi saat triage tidak di-pivot
-2. **Alert tidak ada** - aktivitas terjadi tapi tidak ada rule yang catch, atau log-nya tidak masuk Wazuh sama sekali
+1. **Alert tidak ada** - aktivitas terjadi tapi tidak ada coverage sama sekali
+2. **Evidence tidak cukup** - alert ada, tapi investigator tidak bisa rekonstruksi apa yang terjadi
 
-Di case ini mayoritas gap adalah tipe kedua - coverage gap, bukan investigator error. Brute force-nya sendiri ter-deteksi dengan baik oleh Wazuh. Yang tidak terdeteksi adalah fase sebelum dan sesudahnya.
+Berbeda dari INC-001 yang punya gap "alert ada tapi investigator missed", di INC-002 mayoritas gap adalah coverage gap - monitoring-nya yang tidak ada, bukan investigator yang tidak pivot.
 
 ---
 
-## Gap 1: Reconnaissance Tidak Terdeteksi Sama Sekali
+## Gap 1: Aktivitas Awal Tidak Terdeteksi Wazuh
 
 **Apa yang terjadi:**
-Attacker lakukan ping sweep ke 192.168.30.0/24 dan port scan ke 192.168.30.50 sebelum mulai brute force. Tidak ada satu pun alert di Wazuh untuk aktivitas ini.
+btmp menunjukkan failed attempts itstaff dari 192.168.30.200 mulai **10:35 WIB** - sekitar 40 menit sebelum alert pertama muncul di Wazuh (11:15 WIB). Selama window 40 menit itu tidak ada satu pun alert.
 
-**Kenapa tidak terdeteksi:**
-Coverage gap yang fundamental. Wazuh collect dari system logs dan agent events - tidak ada network-level monitoring. ICMP sweep dan TCP SYN scan tidak masuk ke auth.log atau syslog sama sekali.
-
-Tidak ada:
-- Network-based IDS (Suricata, Snort, Zeek)
-- NetFlow atau packet capture
-- Firewall log yang di-ingest ke Wazuh
+**Kenapa:**
+Wazuh baru trigger alert setelah failure rate mencapai threshold rule 5763 dan 5760. Sebelum threshold itu, attempts yang ada tidak generate alert meskipun terekam di btmp.
 
 **Dampak:**
-Attacker bisa lakukan reconnaissance tanpa jejak sama sekali. Investigator baru tahu ada ancaman saat brute force mulai (11:15) - padahal attacker sudah aktif di jaringan sebelumnya.
+Investigator baru aware ada ancaman setelah 40 menit aktivitas berjalan. Kalau attacker lebih sabar dan rate-nya lebih rendah, bisa jadi tidak pernah trigger threshold Wazuh sama sekali.
 
 **Remediation:**
-- Deploy Suricata di network segment sebagai NIDS, integrasikan ke Wazuh
-- Minimal: aktifkan logging di level network interface untuk deteksi scan pattern
-- Suricata adalah prioritas pertama karena paling straightforward di-integrate ke Wazuh yang sudah ada
+- Turunkan threshold rule 5763 atau buat custom rule yang alert lebih awal
+- Pertimbangkan alert untuk failed attempts dari IP yang sama ke satu target dalam window yang lebih panjang
 
 ---
 
-## Gap 2: Tidak Ada fail2ban - Brute Force Tidak Di-block
+## Gap 2: Reconnaissance Tidak Terdeteksi Sama Sekali
 
 **Apa yang terjadi:**
-130 SSH authentication attempts dalam ~1.5 menit dari satu IP tidak mendapat blocking sama sekali. Hydra jalan sampai selesai tanpa hambatan.
+Tidak ada evidence reconnaissance di log manapun - tidak di Wazuh, tidak di auth.log, tidak di btmp. Tapi attacker tahu port 22 open di siemserver sebelum mulai brute force. Fase recon terjadi tanpa jejak sama sekali.
 
-**Kenapa tidak di-block:**
-fail2ban tidak terinstall di siemserver. Tidak ada mekanisme apapun yang otomatis block IP setelah N failures dalam window waktu tertentu.
+**Kenapa:**
+Network-level activity tidak ter-monitor. Tidak ada NIDS, tidak ada firewall log yang di-ingest ke Wazuh, tidak ada NetFlow. ICMP sweep dan TCP SYN scan tidak masuk ke log Linux manapun.
+
+**Remediation:**
+- Deploy Suricata sebagai NIDS, integrasikan ke Wazuh
+- Minimal: aktifkan firewall logging dan ingest ke Wazuh
+
+---
+
+## Gap 3: Tidak Ada fail2ban - Brute Force Tidak Di-block
+
+**Apa yang terjadi:**
+Dari auth.log terlihat jelas: ratusan failed attempts masuk tanpa hambatan apapun sampai akhirnya berhasil. Tidak ada mekanisme yang block IP setelah N failures.
+
+**Kenapa:**
+fail2ban tidak terinstall di siemserver. Tidak ada rate limiting di level SSH maupun OS.
+
+**Kenapa ini critical:**
+Ini yang paling langsung menyebabkan insiden berhasil. Dengan fail2ban aktif, IP 192.168.30.200 akan ter-block jauh sebelum berhasil menemukan credential yang benar.
+
+**Remediation:**
+- Install fail2ban dengan konfigurasi yang ketat untuk SSH
+- Atau enforce SSH key-based authentication dan disable PasswordAuthentication sepenuhnya - ini yang paling efektif
+
+---
+
+## Gap 4: Aktivitas Post-Compromise Tidak Ter-capture Sama Sekali
+
+**Apa yang terjadi:**
+Sesi itstaff berlangsung ~10 menit (11:17 - 11:28 WIB). Dari semua pivot yang saya lakukan - auth.log, journalctl, wtmp - tidak ada yang bisa tunjukkan apa yang dilakukan selama sesi itu. Aktivitas 10 menit itu adalah blind spot total.
+
+**Kenapa:**
+Tidak ada command execution logging untuk standard user SSH session. journalctl dengan filter UID=1001 tidak mengembalikan apapun - aktivitas itstaff tidak berinteraksi dengan systemd services atau tidak trigger journal logging.
 
 **Dampak:**
-Ini yang paling direct menyebabkan insiden ini berhasil. Kalau fail2ban aktif dengan config default (5 failures dalam 10 menit = ban 10 menit), Hydra dengan 4 thread paralel akan ter-block jauh sebelum berhasil menemukan password yang benar.
+Ini gap yang paling mengkhawatirkan dari sisi investigasi. Attacker bisa lakukan apapun selama sesi - enumerate file, baca konfigurasi, coba eskalasi privilege - dan tidak akan ada jejaknya di log yang tersedia saat ini. Investigator hanya tahu mereka masuk dan keluar, tapi tidak tahu apa yang terjadi di antaranya.
 
-**Kenapa ini gap serius:**
-SIEM server adalah komponen paling kritis di lab. Justru di server ini tidak ada proteksi dasar seperti fail2ban. Endpoint Windows (WKS01, DC01) punya mekanisme lockout via Group Policy, tapi Linux server ini tidak punya equivalent-nya.
-
-**Remediation:**
-- Install dan konfigurasi fail2ban di siemserver:
-  ```
-  maxretry = 5
-  findtime = 300
-  bantime = 3600
-  ```
-- Pertimbangkan juga AllowUsers di sshd_config untuk restrict siapa yang boleh SSH - dhika saja, bukan semua user Linux
-- Disable PasswordAuthentication, enforce SSH key-based authentication
-
----
-
-## Gap 3: Tidak Ada Account Lockout Policy di Linux
-
-**Apa yang terjadi:**
-Tidak ada policy yang lock akun itstaff setelah sekian kali salah password. Di Windows ada account lockout via Group Policy. Di Linux tidak ada equivalent-nya secara default.
-
-**Kenapa ini berbeda dari fail2ban:**
-fail2ban block di level IP/network. Account lockout block di level akun - bahkan kalau attacker pakai banyak IP berbeda (distributed brute force), lockout tetap trigger setelah N failures ke akun yang sama.
+**Yang lebih serius:** target adalah SIEM server. Kalau ada yang bisa di-akses atau dimodifikasi dari akun itstaff, investigator tidak akan pernah tahu dari log yang ada.
 
 **Remediation:**
-- Konfigurasi PAM faillock atau pam_tally2:
-  ```
-  auth required pam_faillock.so preauth deny=5 unlock_time=900
-  ```
-- Kombinasi fail2ban + account lockout memberikan defense in depth untuk proteksi SSH
-
----
-
-## Gap 4: Post-Compromise Activity Tidak Terdeteksi
-
-**Apa yang terjadi:**
-Selama ~10 menit sesi itstaff (11:17 - 11:28), attacker menjalankan beberapa discovery commands: whoami, id, uname, cat /etc/passwd, ls /home, ls /var/ossec/. Tidak ada satu pun alert Wazuh untuk aktivitas ini.
-
-**Kenapa tidak terdeteksi:**
-Tidak ada monitoring untuk bash command execution di level standard user. Wazuh collect auth.log (login/logout events) tapi tidak ada auditd rules yang log command execution dari SSH session.
-
-Ini berarti attacker bisa lakukan apapun setelah login - selama tidak menyentuh system calls yang spesifik di-monitor - tanpa terdeteksi.
-
-**Yang lebih mengkhawatirkan:**
-Target adalah SIEM server itu sendiri. Kalau itstaff punya privilege lebih tinggi, atau kalau attacker berhasil eskalasi, mereka bisa modifikasi Wazuh rules, hapus alerts, atau exfiltrate log investigasi. Di case ini mereka stuck di level standard user, tapi gap-nya tetap ada.
-
-**Remediation:**
-- Deploy auditd dengan rules untuk monitor command execution dari SSH sessions:
+- Deploy auditd dengan rules untuk capture command execution dari SSH sessions:
   ```
   -a always,exit -F arch=b64 -S execve -F uid>=1000 -k user_commands
   ```
-- Integrasikan auditd ke Wazuh - ada native support untuk ini
-- Buat custom Wazuh rule untuk flag command execution dari sesi SSH yang baru saja established
+- Integrasikan auditd ke Wazuh - ada native support
+- Ini prioritas tinggi khusus untuk SIEM server
 
 ---
 
 ## Gap 5: SSH Expose ke Seluruh Network Segment
 
 **Apa yang terjadi:**
-Port 22 siemserver reachable dari semua host di 192.168.30.0/24, termasuk dari Kali (192.168.30.200). Tidak ada network-level restriction untuk akses SSH ke SIEM server.
-
-**Kenapa ini gap:**
-SIEM server adalah komponen monitoring - seharusnya yang akses ke sana hanya admin dari host yang authorized, bukan semua host di network. Dengan port 22 terbuka ke seluruh segment, setiap host di jaringan bisa attempt SSH ke SIEM server.
+Port 22 siemserver reachable dari 192.168.30.200 tanpa restriksi apapun. Tidak ada network-level control yang limit siapa yang boleh attempt SSH ke server ini.
 
 **Remediation:**
-- Konfigurasi iptables atau ufw untuk restrict SSH hanya dari IP management yang authorized:
-  ```
-  ufw allow from 192.168.30.100 to any port 22
-  ufw deny 22
-  ```
-- Atau pindahkan SIEM ke separate management VLAN yang tidak directly accessible dari attacker segment
+- Restrict SSH access via firewall hanya dari IP atau range yang authorized
+- SIEM server harusnya hanya bisa di-akses dari management host, bukan dari semua host di segment yang sama
 
 ---
 
 ## Summary
 
-| # | Gap | Tipe | Severity | Prioritas Remediation |
-|---|-----|------|----------|----------------------|
-| 1 | Reconnaissance tidak terdeteksi | Tidak ada coverage | Medium | Menengah |
-| 2 | Tidak ada fail2ban | Tidak ada kontrol | Critical | Segera |
-| 3 | Tidak ada account lockout Linux | Tidak ada kontrol | High | Tinggi |
-| 4 | Post-compromise activity tidak terdeteksi | Tidak ada coverage | High | Tinggi |
+| # | Gap | Tipe | Severity | Prioritas |
+|---|-----|------|----------|-----------|
+| 1 | Aktivitas awal 40 menit tidak terdeteksi | Threshold terlalu tinggi | Medium | Menengah |
+| 2 | Reconnaissance tidak terdeteksi | Tidak ada coverage | Medium | Menengah |
+| 3 | Tidak ada fail2ban | Tidak ada kontrol | Critical | Segera |
+| 4 | Aktivitas post-compromise blind spot total | Tidak ada logging | High | Tinggi |
 | 5 | SSH expose ke seluruh segment | Misconfiguration | High | Tinggi |
 
 ---
 
 ## Rekomendasi Prioritas
 
-**Jangka pendek (bisa dilakukan sekarang):**
-1. Install fail2ban di siemserver - ini yang paling langsung prevent serangan ini terulang
-2. Restrict SSH access via ufw - hanya dari authorized management IP
-3. Ganti password semua akun yang lemah: itstaff, socl1, socl2, audit
+**Segera:**
+1. Install fail2ban di siemserver - ini yang paling langsung prevent insiden ini terulang
+2. Restrict SSH access via firewall - hanya dari authorized management IP
 
 **Jangka menengah:**
-4. Deploy auditd + integrasi ke Wazuh untuk command execution logging
-5. Enforce SSH key-based auth, disable PasswordAuthentication
-6. Konfigurasi PAM faillock untuk account lockout policy
+3. Deploy auditd + integrasi ke Wazuh untuk command execution logging
+4. Disable PasswordAuthentication SSH, enforce key-based auth
+5. Review dan turunkan threshold alert untuk SSH failures
 
 **Jangka panjang:**
-7. Deploy Suricata untuk network-level visibility dan deteksi reconnaissance
-8. Pertimbangkan separate management network untuk SIEM access
+6. Deploy Suricata untuk network-level visibility
 
 ---
 
-*Insiden ini bisa dicegah sepenuhnya hanya dengan Gap 2 - kalau fail2ban terinstall, Hydra tidak akan sempat menemukan password yang benar.*
+*Insiden ini bisa dicegah sepenuhnya hanya dengan Gap 3 - kalau fail2ban terinstall, brute force tidak akan berhasil.*

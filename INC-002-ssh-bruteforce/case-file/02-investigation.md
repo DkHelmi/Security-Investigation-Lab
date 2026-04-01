@@ -8,89 +8,132 @@
 
 ## Starting Point
 
-Dari triage: SSH brute force dari 192.168.30.200 berhasil, akun `itstaff` login ke SIEM server jam 11:17:34. Sesi aktif sekitar 10 menit sampai 11:28:12. Pertanyaan sekarang - apa yang mereka lakukan selama sesi itu?
+Dari triage: ada SSH brute force dari 192.168.30.200 ke siemserver, berhasil login sebagai `itstaff` jam 11:17:34 WIB. Sesi aktif sekitar 10 menit sampai 11:28:12 WIB. Wazuh tidak capture aktivitas apapun selama sesi berlangsung.
 
-Pivot pertama: rekonstruksi aktivitas itstaff selama window 11:17 - 11:28.
-
----
-
-## Rekonstruksi Aktivitas - Sesi itstaff
-
-### Login Confirmed
-
-Rule 40112 jam 11:17:34 confirm login berhasil dari 192.168.30.200 ke akun itstaff via SSH. `full_log` dari alert ini sangat eksplisit: `Accepted password for itstaff from 192.168.30.200 port 36484 ssh2`. Tidak ada ambiguitas di sini.
-
-Rule 5501 (*PAM: Login session opened*) muncul bersamaan - confirm sesi interaktif terbuka.
-
-### Cek Privilege itstaff
-
-Dari output discovery yang terekam: `id` menunjukkan `uid=1001(itstaff) gid=1001(itstaff) groups=1001(itstaff)`. Tidak ada sudo group, tidak ada adm group. itstaff adalah standard user tanpa privilege tambahan.
-
-Ini sedikit melegakan - attacker tidak langsung dapat akses root. Tapi mereka masih ada di dalam SIEM server, yang sendirinya sudah cukup berbahaya.
-
-### Discovery Commands
-
-Dari rekonstruksi sesi berdasarkan attacker-logs (referensi lab), urutan command yang dijalankan selama sesi:
-
-```
-date          → Wed Apr 1 04:23:14 AM UTC 2026
-whoami        → itstaff
-id            → uid=1001(itstaff) gid=1001(itstaff) groups=1001(itstaff)
-uname -a      → Linux siemserver 5.15.0-173-generic
-cat /etc/passwd (filtered) → terlihat: root, dhika, itstaff, socl1, socl2, audit
-ls -la /home  → 5 user home directory: audit, dhika, itstaff, socl1, socl2
-ls -la /var/ossec/ → Permission denied
-```
-
-Yang menarik dari urutan ini: attacker langsung coba `/var/ossec/` setelah lihat user list dan home directories. Mereka tahu ini Wazuh server dan langsung cek apakah bisa akses directory Wazuh. Jawaban: tidak bisa - `Permission denied`.
-
-### Akses ke /var/ossec/ Gagal
-
-Ini penting dicatat. `/var/ossec/` adalah directory Wazuh tempat alerts, logs, dan konfigurasi disimpan. itstaff tidak punya permission ke sana. Artinya selama sesi ini, attacker tidak bisa baca alert Wazuh, tidak bisa modifikasi rules, tidak bisa akses log investigasi.
-
-Dari sisi impact, ini membatasi apa yang bisa attacker lakukan. Tapi keberadaan mereka di server ini tetap serius - mereka tahu topologi user, bisa jadi pivot point untuk serangan selanjutnya.
-
-### Tidak Ada bash_history
-
-`cat ~/.bash_history` saat akhir sesi menunjukkan `No such file or directory`. File bash_history baru terbentuk setelah sesi pertama selesai dan bash menulis history ke disk. Karena ini kemungkinan sesi pertama itstaff, file belum ada.
-
-Dari perspektif investigasi: ini bukan attacker yang cover tracks. Ini behavior normal bash. Evidence utama tetap dari auth.log dan Wazuh alerts, bukan bash_history.
+Pivot pertama: cari evidence di luar Wazuh. Login ke siemserver sebagai dhika, cek auth.log dan system logs secara langsung.
 
 ---
 
-## Dead End - Aktivitas Post-Compromise yang Terbatas
+## Pivot ke auth.log
 
-Saya coba cari apakah ada aktivitas lain selama sesi 10 menit itu - koneksi keluar, file yang dibuat, atau privilege escalation attempt. Dari alert Wazuh yang ada, tidak ada yang menunjukkan eskalasi atau aktivitas lebih lanjut selama window tersebut.
+```bash
+sudo grep "itstaff" /var/log/auth.log
+```
 
-Kemungkinan dua hal: attacker memang hanya melakukan reconnaissance awal dan tidak sempat atau tidak berhasil melakukan lebih banyak, atau ada aktivitas yang tidak ter-capture oleh monitoring yang ada.
+![auth.log itstaff](../evidence/evidence-03-authlog-itstaff.png)
+*auth.log - semua event terkait itstaff, timestamp UTC*
 
-Untuk scope INC-002 ini, evidence yang ada cukup untuk rekonstruksi apa yang terjadi. Aktivitas yang tidak terdeteksi dibahas di 05-detection-gaps.md.
+> **Catatan timezone:** auth.log menggunakan UTC, Wazuh menggunakan UTC+7 (WIB). Selisih 7 jam. Contoh: `04:17:34 UTC` di auth.log = `11:17:34 WIB` di Wazuh - event yang sama.
+
+Dari auth.log, ada temuan yang tidak terlihat di Wazuh sebelumnya - ada **dua** successful login untuk itstaff dari 192.168.30.200 dalam window waktu berdekatan:
+
+**Login pertama - 04:14:30 UTC (11:14:30 WIB)**
+```
+Accepted password for itstaff from 192.168.30.200 port 48808 ssh2
+session opened for user itstaff(uid=1001) by (uid=0)
+session closed for user itstaff        ← langsung closed ~1 detik kemudian
+```
+
+**Login kedua - 04:17:34 UTC (11:17:34 WIB)**
+```
+Accepted password for itstaff from 192.168.30.200 port 36484 ssh2
+session opened for user itstaff(uid=1001) by (uid=0)
+...
+Disconnected from user itstaff 192.168.30.200 port 36484  ← 04:28:11 UTC
+session closed for user itstaff
+```
+
+Login pertama sesinya sangat singkat - dibuka lalu langsung tertutup dalam hitungan detik. Login kedua yang sesinya panjang (~10 menit) dan ini yang ter-capture di Wazuh sebagai alert 40112.
+
+Kenapa ada dua login? Saya tidak bisa pastikan dari evidence yang ada. Kemungkinan ada proses otomatis yang establish connection sebelum login manual, tapi ini masih hipotesis.
+
+---
+
+## Cek last dan lastlog
+
+```bash
+last itstaff
+lastlog -u itstaff
+```
+
+![last lastlog itstaff](../evidence/evidence-04-last-lastlog.png)
+*last dan lastlog - record login session itstaff*
+
+`last` hanya menampilkan satu sesi: `pts/1` dari 192.168.30.200, Wed Apr 1 04:17 - 04:28 (00:10). Login pertama (04:14:30) tidak muncul di sini - kemungkinan karena sesinya terlalu singkat dan tidak sempat terekam di wtmp secara penuh.
+
+`lastlog` confirm: login terakhir itstaff dari 192.168.30.200 jam 04:17:34 UTC.
+
+---
+
+## Cek journalctl
+
+```bash
+sudo journalctl _UID=1001 --since "2026-04-01 11:15" --until "2026-04-01 11:30"
+```
+
+![journalctl no entry](../evidence/evidence-05-journalctl-noentry.png)
+*journalctl UID=1001 - no entries*
+
+Tidak ada entries. journalctl dengan filter UID=1001 tidak menemukan apapun untuk window waktu tersebut. Artinya aktivitas itstaff selama sesi tidak generate system journal entries yang ter-capture - command yang dijalankan tidak berinteraksi dengan systemd services atau tidak trigger logging di level journal.
+
+Ini dead end dari sisi journald.
+
+---
+
+## Cek wtmp dan btmp
+
+```bash
+sudo utmpdump /var/log/wtmp | grep itstaff
+sudo utmpdump /var/log/btmp | grep itstaff
+```
+
+![wtmp btmp itstaff](../evidence/evidence-06-wtmp-btmp.png)
+*wtmp dan btmp - login records dan failed attempts*
+
+**wtmp** (successful logins): satu entry - itstaff, pts/1, dari 192.168.30.200, timestamp 2026-04-01T04:17:34 UTC. Konsisten dengan yang ada di `last`.
+
+**btmp** (failed attempts): banyak entry itstaff dari 192.168.30.200, dimulai dari 2026-04-01T03:35:57 UTC - jauh sebelum cluster failure yang pertama ter-capture Wazuh (11:15 WIB / 04:15 UTC). Artinya ada activity dari IP yang sama bahkan sebelum window yang saya monitor.
+
+Ini temuan yang perlu dicatat: btmp menunjukkan failed attempts dari 192.168.30.200 mulai **03:35:57 UTC (10:35 WIB)** - sekitar 40 menit sebelum alert pertama muncul di Wazuh.
+
+---
+
+## Dead End - Aktivitas Selama Sesi Tidak Ter-capture
+
+Dari semua pivot yang saya lakukan - auth.log, last, journalctl, wtmp/btmp - tidak ada satu pun yang bisa tunjukkan apa yang dilakukan selama sesi 10 menit itu. Yang saya tahu hanya:
+
+- Login berhasil jam 04:17:34 UTC dari 192.168.30.200
+- Sesi berjalan di pts/1
+- Disconnect jam 04:28:11 UTC
+
+Tidak ada command execution logging, tidak ada file access logging, tidak ada network activity logging untuk sesi ini. Aktivitas apa pun yang dilakukan selama 10 menit itu tidak meninggalkan jejak yang bisa saya baca dari sisi investigator.
+
+Ini adalah gap yang significant - dibahas lebih lanjut di 05-detection-gaps.md.
 
 ---
 
 ## Rekonstruksi Lengkap
 
-Dari semua evidence yang terkumpul:
+Dari semua evidence yang berhasil dikumpulkan:
 
-1. Attacker dari 192.168.30.200 scan network, temukan port 22 open di 192.168.30.50 (sebelum 11:15)
-2. SSH brute force dengan username wordlist dan password wordlist (11:15 - 11:15:36)
-3. Hydra berhasil: `itstaff:itstaff123` ditemukan
-4. Login manual SSH sebagai itstaff (11:17:34)
-5. Discovery: whoami, id, uname, /etc/passwd, ls /home, ls /var/ossec → Permission denied
-6. Logout (11:28:12)
+1. Failed attempts itstaff dari 192.168.30.200 mulai **10:35 WIB** - tidak terdeteksi Wazuh (btmp)
+2. Cluster SSH failures masuk ke Wazuh mulai **11:15:28 WIB** (auth.log + Wazuh alert 5760)
+3. Login berhasil pertama **11:14:30 WIB** - sesi sangat singkat, langsung closed (auth.log)
+4. Login berhasil kedua **11:17:34 WIB** - sesi aktif ~10 menit (Wazuh alert 40112, auth.log)
+5. Disconnect **11:28:11 WIB** (auth.log, Wazuh alert 5502)
+6. Aktivitas selama sesi: **tidak diketahui** - tidak ada logging yang capture
 
-**Status akhir:** akun itstaff berhasil di-compromise. Attacker ada di dalam SIEM server selama ~10 menit. Tidak ada bukti eskalasi privilege atau akses ke data sensitif Wazuh. Tapi akses ke server monitoring sudah cukup mengkhawatirkan.
+**Status akhir:** akun itstaff berhasil di-compromise. Attacker ada di dalam SIEM server selama ~10 menit. Apa yang dilakukan selama sesi tersebut tidak bisa direkonstruksi dari evidence yang tersedia.
 
 ---
 
 ## Yang Masih Belum Jelas
 
-- Apakah attacker sempat lakukan sesuatu yang tidak ter-log selama 10 menit itu
-- Apakah ada reconnaissance sebelum port scan yang tidak terdeteksi
-- Apakah itstaff pernah login legitimate sebelumnya - untuk baseline comparison
-
-Ini saya catat sebagai investigative gaps, bukan necessarily detection failures.
+- Aktivitas spesifik selama sesi 10 menit itstaff
+- Kenapa ada dua successful login dalam window berdekatan
+- Failed attempts di btmp mulai 03:35:57 UTC - apakah ini sesi brute force terpisah sebelumnya
+- Apakah itstaff pernah login legitimate sebelumnya untuk baseline comparison
 
 ---
 
-*MITRE mapping detail ada di 04-mitre-mapping.md. Detection gaps dan missed alerts dibahas di 05-detection-gaps.md.*
+*MITRE mapping detail ada di 04-mitre-mapping.md. Detection gaps dibahas di 05-detection-gaps.md.*
