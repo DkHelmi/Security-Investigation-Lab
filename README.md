@@ -1,12 +1,12 @@
 # Security Investigation Lab
 
-Repo ini dokumentasi investigasi insiden yang saya jalankan di lab pribadi. Bukan tutorial maupun walkthrough, ini catatan kerja saya sebagai investigator yang trace aktivitas attacker dari alert sampai conclusion.
+Dokumentasi investigasi insiden yang saya jalankan di lab pribadi. Bukan tutorial, bukan walkthrough. Ini catatan kerja saya sebagai investigator yang trace aktivitas attacker dari alert sampai conclusion.
 
-Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali Linux. saya generate aktivitas attacker, lalu melakukan investigasi dari sisi defender.
+Yang membedakan repo ini: semua investigasi dimulai dari alert Wazuh, bukan dari mengetahui apa yang attacker lakukan. Saya generate attack campaign, lalu pindah ke sisi defender dan mulai dari nol. Dead ends, hipotesis yang salah, alert yang missed karena confirmation bias, semuanya ditulis apa adanya.
 
-**Investigator:** Hardhika Helmi (DkHelmi)  
+**Investigator:** Hardhika Helmi  
 **Focus:** Network Forensics & Incident Response  
-**Location:** Indonesia
+**Location:** Semarang, Indonesia
 
 ---
 
@@ -15,13 +15,20 @@ Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali 
 | Case | Scenario | Status |
 |------|----------|--------|
 | [INC-001-rdp-intrusion](./INC-001-rdp-intrusion/) | Password spray via SMB, lateral movement ke DC01 via WinRM, persistence via registry Run key | ✅ Completed |
-| [INC-002-ssh-bruteforce](./INC-002-ssh-bruteforce/) | SSH brute force ke SIEM server, akun itstaff compromised, post-compromise discovery | ✅ Completed |
+| [INC-002-ssh-bruteforce](./INC-002-ssh-bruteforce/) | SSH brute force ke SIEM server, akun itstaff compromised, post-compromise blind spot total | ✅ Completed |
+| [INC-003-persistence](./INC-003-persistence/) | Persistence mechanisms: scheduled tasks, WMI subscription, LNK payload | 🔄 In Progress |
+
+### Highlight dari Case yang Selesai
+
+**INC-001:** Alert level 15 (tertinggi di Wazuh) muncul saat attacker drop executable di DC01, tapi saya missed karena sedang fokus ke narrative lateral movement. Persistence via registry Run key juga punya alert level 10 yang saya lewati. Dua-duanya confirmation bias, sudah punya hipotesis dan hanya cari evidence yang support.
+
+**INC-002:** Attacker berhasil masuk ke SIEM server via SSH brute force. Sesi aktif 10 menit, tapi tidak ada satu pun log yang capture aktivitas selama sesi itu. journalctl, auth.log, wtmp, semuanya kosong. Blind spot total di server yang paling kritis.
 
 ---
 
 ## Lab Environment
 
-Dokumentasi lengkap lab base ada di [lab-base/](./lab-base/).
+Dokumentasi lengkap lab ada di [lab-base/](./lab-base/).
 
 ![Lab Topology](./lab-base/assets/topology.svg)
 
@@ -36,10 +43,20 @@ Dokumentasi lengkap lab base ada di [lab-base/](./lab-base/).
 
 ## Pendekatan
 
-Setiap case berdiri sendiri dan tidak ada dependency antar case. Masing-masing punya lab snapshot sendiri sebagai starting point.
+Setiap case berdiri sendiri, tidak ada dependency antar case. Masing-masing punya lab snapshot sendiri sebagai starting point.
 
-Investigasi selalu dimulai dari alert Wazuh, bukan dari tool atau teknik attacker. Attacker POV (tool output, terminal) disimpan di folder `attacker-logs/` per case sebagai referensi lab.
+Investigasi selalu dimulai dari alert Wazuh. Saya tidak buka attacker logs atau tool output selama investigasi berjalan. Attacker POV disimpan terpisah di folder `attacker-logs/` per case sebagai referensi lab.
+
+Setiap case punya 5 file standar:
+
+| File | Isi |
+|------|-----|
+| 01-alert-triage | Alert pertama yang trigger investigasi, proses triage, initial assessment |
+| 02-investigation | Rekonstruksi langkah demi langkah, pivot antar evidence, dead ends |
+| 03-timeline | Kronologi event berdasarkan timestamp dari log dan alert |
+| 04-mitre-mapping | MITRE ATT&CK mapping dengan konteks spesifik dari case |
+| 05-detection-gaps | Apa yang missed, kenapa, dan rekomendasi perbaikan |
 
 ---
 
-*Jika ada case baru akan di update segera.*
+*Jika ada case baru akan di-update segera.*
