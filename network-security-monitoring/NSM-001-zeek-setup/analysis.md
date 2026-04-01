@@ -1,3 +1,0 @@
-# Analysis - Zeek Logs
-
-> *Planned.*

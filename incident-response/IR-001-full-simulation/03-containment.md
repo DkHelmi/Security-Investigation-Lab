@@ -1,3 +1,0 @@
-# 03-containment
-
-> *Planned.*
