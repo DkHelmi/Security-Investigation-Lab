@@ -15,6 +15,7 @@ Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali 
 | Case | Scenario | Status |
 |------|----------|--------|
 | [INC-001-rdp-intrusion](./INC-001-rdp-intrusion/) | Password spray via SMB, lateral movement ke DC01 via WinRM, persistence via registry Run key | ✅ Completed |
+| [INC-002-ssh-bruteforce](./INC-002-ssh-bruteforce/) | SSH brute force ke SIEM server, akun itstaff compromised, post-compromise discovery | ✅ Completed |
 
 ---
 
@@ -37,7 +38,7 @@ Network: `192.168.30.0/24` Host-Only VirtualBox
 
 Setiap case berdiri sendiri dan tidak ada dependency antar case. Masing-masing punya lab snapshot sendiri sebagai starting point.
 
-Investigasi selalu dimulai dari alert Wazuh, bukan dari tool atau teknik attacker. dan untuk Attacker POV (tool output, terminal) disimpan di folder `attacker-logs/` per case sebagai referensi lab.
+Investigasi selalu dimulai dari alert Wazuh, bukan dari tool atau teknik attacker. Attacker POV (tool output, terminal) disimpan di folder `attacker-logs/` per case sebagai referensi lab.
 
 ---
 
