@@ -23,14 +23,14 @@ Setup lab: Windows AD environment (DC + workstation), Wazuh SIEM, attacker Kali 
 
 Dokumentasi lengkap lab base ada di [lab-base/](./lab-base/).
 
+![Lab Topology](./lab-base/assets/topology.svg)
+
 | Host | IP | OS | Role |
 |------|----|----|------|
 | SIEM | 192.168.30.50 | Ubuntu 22.04 | Wazuh 4.9.2 |
 | DC01 | 192.168.30.100 | Windows Server 2022 | Domain Controller |
 | WKS01 | 192.168.30.101 | Windows 10 22H2 | Workstation |
 | Kali | 192.168.30.200 | Kali Linux | Attacker |
-
-Network: `192.168.30.0/24` Host-Only VirtualBox
 
 ---
 
