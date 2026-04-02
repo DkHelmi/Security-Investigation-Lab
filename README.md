@@ -16,13 +16,15 @@ Yang membedakan repo ini: semua investigasi dimulai dari alert Wazuh, bukan dari
 |------|----------|--------|
 | [INC-001-rdp-intrusion](./INC-001-rdp-intrusion/) | Password spray via SMB, lateral movement ke DC01 via WinRM, persistence via registry Run key | ✅ Completed |
 | [INC-002-ssh-bruteforce](./INC-002-ssh-bruteforce/) | SSH brute force ke SIEM server, akun itstaff compromised, post-compromise blind spot total | ✅ Completed |
-| [INC-003-persistence](./INC-003-persistence/) | Persistence mechanisms: scheduled tasks, WMI subscription, LNK payload | 🔄 In Progress |
+| [INC-003-persistence](./INC-003-persistence/) | LNK phishing delivery, compiled reverse shell bypass Defender, persistence via Scheduled Task | ✅ Completed |
 
 ### Highlight dari Case yang Selesai
 
 **INC-001:** Alert level 15 (tertinggi di Wazuh) muncul saat attacker drop executable di DC01, tapi saya missed karena sedang fokus ke narrative lateral movement. Persistence via registry Run key juga punya alert level 10 yang saya lewati. Dua-duanya confirmation bias, sudah punya hipotesis dan hanya cari evidence yang support.
 
 **INC-002:** Attacker berhasil masuk ke SIEM server via SSH brute force. Sesi aktif 10 menit, tapi tidak ada satu pun log yang capture aktivitas selama sesi itu. journalctl, auth.log, wtmp, semuanya kosong. Blind spot total di server yang paling kritis.
+
+**INC-003:** Dari 5 fase attack (initial access → execution → tool transfer → persistence → C2), Wazuh hanya effectively mendeteksi execution dan tool transfer. Trigger awal (malicious .lnk), persistence mechanism (Scheduled Task), dan reverse shell connection semuanya invisible. Investigator cuma lihat "tengah-tengah" attack chain tanpa tahu bagaimana attacker masuk dan apakah masih punya akses.
 
 ---
 
