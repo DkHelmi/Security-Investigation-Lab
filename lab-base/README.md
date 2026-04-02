@@ -64,8 +64,3 @@ Network: `192.168.30.0/24` Host-Only VirtualBox
 | 100022 | Suppress normal logon success (60106) | Suppress |
 | 100023 | Suppress software protection service (60642) | Suppress |
 | 100024 | Suppress Windows DB engine events (60804-60809, 60798) | Suppress |
-
-## Snapshots
-
-Detail snapshot ada di [snapshots.md](./snapshot.md).
-Sebelum mulai case baru, restore semua VM ke snapshot `BASE-clean`.
