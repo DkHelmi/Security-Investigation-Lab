@@ -17,6 +17,7 @@ Yang membedakan repo ini: semua investigasi dimulai dari alert Wazuh, bukan dari
 | [INC-001-rdp-intrusion](./INC-001-rdp-intrusion/) | Password spray via SMB, lateral movement ke DC01 via WinRM, persistence via registry Run key | ✅ Completed |
 | [INC-002-ssh-bruteforce](./INC-002-ssh-bruteforce/) | SSH brute force ke SIEM server, akun itstaff compromised, post-compromise blind spot total | ✅ Completed |
 | [INC-003-persistence](./INC-003-persistence/) | LNK phishing delivery, compiled reverse shell bypass Defender, persistence via Scheduled Task | ✅ Completed |
+| [INC-004-c2-beaconing](./INC-004-c2-beaconing/) | C2 beaconing via HTTP, periodic callback setiap 30 detik, Sysmon network data tidak sampai ke SIEM | ✅ Completed |
 
 ### Highlight dari Case yang Selesai
 
@@ -25,6 +26,8 @@ Yang membedakan repo ini: semua investigasi dimulai dari alert Wazuh, bukan dari
 **INC-002:** Attacker berhasil masuk ke SIEM server via SSH brute force. Sesi aktif 10 menit, tapi tidak ada satu pun log yang capture aktivitas selama sesi itu. journalctl, auth.log, wtmp, semuanya kosong. Blind spot total di server yang paling kritis.
 
 **INC-003:** Dari 5 fase attack (initial access → execution → tool transfer → persistence → C2), Wazuh hanya effectively mendeteksi execution dan tool transfer. Trigger awal (malicious .lnk), persistence mechanism (Scheduled Task), dan reverse shell connection semuanya invisible. Investigator cuma lihat "tengah-tengah" attack chain tanpa tahu bagaimana attacker masuk dan apakah masih punya akses.
+
+**INC-004:** Beacon exe dengan nama mirip system process (svchost-update.exe) melakukan HTTP callback setiap 30 detik ke C2 server. Wazuh menangkap process creation (cmd.exe di-spawn berulang kali), tapi network connection-nya tidak terlihat sama sekali di SIEM. Sysmon Event ID 3 tercatat di host, tapi tidak ter-forward ke Wazuh. Tanpa pivot langsung ke host, investigator tidak akan pernah tahu kemana malware itu berkomunikasi.
 
 ---
 
