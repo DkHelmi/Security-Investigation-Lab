@@ -24,6 +24,8 @@ Saya buka detail salah satu alert rule 92052 untuk lihat informasi lebih lengkap
 
 Yang menarik: `commandLine` menunjukkan `"cmd.exe" /c :` diikuti command yang dijalankan. Process tree-nya jelas: svchost-update.exe (PID 6020) spawn cmd.exe (PID 6012) untuk execute command. Ini typical pattern dari malware yang menjalankan system commands via cmd.exe untuk reconnaissance atau data collection.
 
+> Evidence: [inv-03-rule92052-cmd-spawn-01.png](../evidence/inv-03-rule92052-cmd-spawn-01.png), [inv-03-rule92052-cmd-spawn-02.png](../evidence/inv-03-rule92052-cmd-spawn-02.png)
+
 ## Mencari Network Connection di Wazuh
 
 Saya coba cari Sysmon Event ID 3 (Network Connection) di Wazuh untuk melihat kemana svchost-update.exe melakukan koneksi.
@@ -45,6 +47,8 @@ data.win.eventdata.destinationIp: 192.168.30.200
 Juga kosong.
 
 Ini berarti Sysmon Event ID 3 tidak ter-forward dari WKS01 ke Wazuh. Entah karena Sysmon config tidak capture Event ID 3, atau Wazuh agent tidak kirim event tersebut. Apapun alasannya, ini gap yang signifikan. Saya perlu pivot langsung ke host untuk dapat informasi network.
+
+> Evidence: [inv-06-wazuh-eid3-search.png](../evidence/inv-06-wazuh-eid3-search.png)
 
 ## Pivot ke Host: Sysmon Event ID 3
 
@@ -71,6 +75,8 @@ Hasilnya mengkonfirmasi dugaan saya:
 Svchost-update.exe melakukan outbound TCP connection ke 192.168.30.200 port 8080. Setiap koneksi menggunakan source port yang berbeda (50059, 50060, 50061, 50062, 50063...) yang naik berurutan. Ini menunjukkan setiap beacon adalah koneksi baru, bukan persistent connection.
 
 IP 192.168.30.200 bukan server yang dikenal di network 192.168.30.0/24 berdasarkan topology yang saya tahu. Port 8080 biasa dipakai untuk HTTP alternate atau web application, tapi dalam konteks ini lebih likely sebagai C2 listener.
+
+> Evidence: [inv-05-sysmon-eid3-host.png](../evidence/inv-05-sysmon-eid3-host.png)
 
 ## Konfirmasi Beaconing Pattern
 

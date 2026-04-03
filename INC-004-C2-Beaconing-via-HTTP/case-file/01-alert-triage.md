@@ -23,6 +23,8 @@ Saat membuka Wazuh Threat Hunting dashboard untuk WKS01, saya langsung notice sa
 
 Ini pattern yang familiar: explorer.exe spawn cmd.exe. Di INC-003 ini terjadi karena user double-click malicious file. Kemungkinan situasi serupa di sini.
 
+> Evidence: [inv-02-alert-100030-detail-01.png](../evidence/inv-02-alert-100030-detail-01.png), [inv-02-alert-100030-detail-02.png](../evidence/inv-02-alert-100030-detail-02.png)
+
 ## Alert Lain di Timeframe yang Sama
 
 Saat saya expand timeframe dan lihat semua alert dari WKS01, ada banyak sekali rule 92052 (level 4). Deskripsinya: "Windows command prompt started by an abnormal process." Ini Sysmon Event ID 1 (Process Creation) yang mendeteksi cmd.exe di-spawn oleh process yang tidak biasa.
@@ -38,6 +40,8 @@ Ini bukan svchost.exe yang legitimate (yang ada di `C:\Windows\System32\`). Ini 
 ## Observasi Awal dari Alert List
 
 Beberapa hal yang langsung terlihat dari daftar alert:
+
+> Evidence: [inv-01-wazuh-alerts-overview.png](../evidence/inv-01-wazuh-alerts-overview.png)
 
 **Pattern timestamp yang reguler.** Alert 92052 muncul dengan interval yang sangat konsisten. Saya lihat timestamp-nya: 23:19:18, 23:19:49, 23:20:19, 23:20:49, 23:21:19... Interval sekitar 30 detik. Ini bukan behavior normal dari user atau software biasa. Interval reguler seperti ini biasanya indikasi automated process, bisa jadi scheduled task atau beacon.
 
