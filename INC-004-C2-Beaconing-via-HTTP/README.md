@@ -25,29 +25,3 @@ Alert rule 100030 level 12 (Explorer spawned command shell) pada Apr 2, 2026 @ 2
 | Executable dari user Downloads folder | ⚠️ Tidak ada alert spesifik untuk exe dari Downloads |
 | Data encoding (base64 dalam HTTP body) | ❌ Tidak ada HTTP content inspection |
 
-## Folder Structure
-
-```
-INC-004-c2-beaconing/
-├── README.md
-├── case-file/
-│   ├── 01-alert-triage.md
-│   ├── 02-investigation.md
-│   ├── 03-timeline.md
-│   ├── 04-mitre-mapping.md
-│   ├── 05-detection-gaps.md
-│   └── 06-alert-tuning.md
-├── evidence/
-└── attacker-logs/
-```
-
-## Case Files
-
-| File | Deskripsi |
-|------|-----------|
-| [01-alert-triage.md](case-file/01-alert-triage.md) | Triage awal dari Wazuh alerts |
-| [02-investigation.md](case-file/02-investigation.md) | Deep dive investigasi, pivot ke host |
-| [03-timeline.md](case-file/03-timeline.md) | Timeline kronologis event |
-| [04-mitre-mapping.md](case-file/04-mitre-mapping.md) | Mapping ke MITRE ATT&CK framework |
-| [05-detection-gaps.md](case-file/05-detection-gaps.md) | Gap analysis dan rekomendasi |
-| [06-alert-tuning.md](case-file/06-alert-tuning.md) | Custom Wazuh rules untuk C2 beaconing |

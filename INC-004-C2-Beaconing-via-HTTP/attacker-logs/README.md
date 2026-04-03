@@ -53,11 +53,3 @@ Attacker sudah punya foothold di WKS01. Malware (svchost-update.exe) diletakkan 
 5. Nama file svchost-update.exe mirip dengan svchost.exe legitimate tapi lokasi di Downloads
 6. Ada dua window aktivitas (23:19-23:23 dan 23:31-23:42) karena beacon sempat di-kill lalu dijalankan ulang
 
-## Screenshots Index
-
-| File | Deskripsi |
-|------|-----------|
-| att-01-beacon-in-downloads.png | File svchost-update.exe di folder Downloads WKS01 |
-| att-02-first-callback.png | C2 server menerima callback pertama |
-| att-03-beacon-interval.png | C2 server log menunjukkan interval 30 detik |
-| att-04-beacon-stopped.png | C2 server setelah beacon di-terminate |
