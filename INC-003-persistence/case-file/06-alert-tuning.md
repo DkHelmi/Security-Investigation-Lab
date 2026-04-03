@@ -1,10 +1,10 @@
 # 06 - Alert Tuning
 
-> File ini ditulis post-case sebagai remediation. Bukan bagian dari investigasi natural — ini rekomendasi tuning berdasarkan gap yang ditemukan.
+> File ini ditulis post-case sebagai remediation. Bukan bagian dari investigasi natural, ini rekomendasi tuning berdasarkan gap yang ditemukan.
 
 ## Custom Rules yang Direkomendasikan
 
-### Rule 1 — Explorer spawns cmd/powershell with suspicious arguments
+### Rule 1, Explorer spawns cmd/powershell with suspicious arguments
 
 **Gap yang ditutup:** Initial LNK execution invisible
 
@@ -22,7 +22,7 @@
 
 Ini akan alert setiap kali `explorer.exe` menjalankan `cmd.exe` atau `powershell.exe`. Level 12 karena ini bisa legitimate (user buka CMD dari Start Menu), tapi cukup tinggi untuk visible di dashboard.
 
-### Rule 2 — Scheduled Task creation detected
+### Rule 2, Scheduled Task creation detected
 
 **Gap yang ditutup:** Persistence via Scheduled Task invisible
 
@@ -47,7 +47,7 @@ Pastikan juga Windows Security log di-forward ke Wazuh via `agent.conf`:
 </localfile>
 ```
 
-### Rule 3 — Executable run from TEMP folder
+### Rule 3, Executable run from TEMP folder
 
 **Gap yang ditutup:** Payload execution dari folder user-writable tidak terdeteksi
 
@@ -62,7 +62,7 @@ Pastikan juga Windows Security log di-forward ke Wazuh via `agent.conf`:
 </rule>
 ```
 
-### Rule 4 — curl/certutil download to suspicious location
+### Rule 4, curl/certutil download to suspicious location
 
 **Gap yang ditutup:** Menambah context ke existing detection
 
@@ -94,17 +94,17 @@ Tambahkan ke `agent.conf` untuk capture event yang saat ini tidak ter-forward:
 
 Pastikan Sysmon configuration include:
 
-- **Event ID 3** (Network Connection) — minimal untuk proses dari folder TEMP/AppData
-- **Event ID 11** (File Created) — sudah aktif, tapi pastikan coverage di semua user-writable folders
-- **Event ID 1** (Process Create) — sudah aktif
+- **Event ID 3** (Network Connection), minimal untuk proses dari folder TEMP/AppData
+- **Event ID 11** (File Created), sudah aktif, tapi pastikan coverage di semua user-writable folders
+- **Event ID 1** (Process Create), sudah aktif
 
 ## Prioritas Implementasi
 
 | Prioritas | Rule | Alasan |
 |---|---|---|
-| P1 | 100031 (Scheduled Task) | Persistence detection adalah gap paling critical — tanpa ini, attacker bisa maintain access tanpa terdeteksi |
+| P1 | 100031 (Scheduled Task) | Persistence detection adalah gap paling critical, tanpa ini, attacker bisa maintain access tanpa terdeteksi |
 | P1 | Agent config update (TaskScheduler log) | Prerequisite untuk rule 100031 |
-| P2 | 100030 (Explorer → cmd/ps) | Initial access detection — membantu identifikasi trigger awal |
+| P2 | 100030 (Explorer → cmd/ps) | Initial access detection, membantu identifikasi trigger awal |
 | P2 | 100032 (Exe from TEMP) | Payload execution detection |
 | P3 | 100033 (curl/certutil download) | Enhancement untuk existing detection |
-| P3 | Sysmon Event ID 3 | Network visibility — penting tapi butuh tuning supaya tidak terlalu noisy |
+| P3 | Sysmon Event ID 3 | Network visibility, penting tapi butuh tuning supaya tidak terlalu noisy |
