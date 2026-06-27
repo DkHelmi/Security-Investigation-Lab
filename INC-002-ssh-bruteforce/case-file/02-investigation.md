@@ -114,14 +114,7 @@ Ini adalah gap yang significant - dibahas lebih lanjut di 05-detection-gaps.md.
 
 ## Rekonstruksi Lengkap
 
-Dari semua evidence yang berhasil dikumpulkan:
-
-1. Failed attempts itstaff dari 192.168.30.200 mulai **10:35 WIB** - tidak terdeteksi Wazuh (btmp)
-2. Login berhasil pertama **11:14:30 WIB** - sesi sangat singkat, langsung closed (auth.log)
-3. Cluster SSH failures masuk ke Wazuh mulai **11:15:28 WIB** (auth.log + Wazuh alert 5760)
-4. Login berhasil kedua **11:17:34 WIB** - sesi aktif ~10 menit (Wazuh alert 40112, auth.log)
-5. Disconnect **11:28:11 WIB** (auth.log, Wazuh alert 5502)
-6. Aktivitas selama sesi: **tidak diketahui** - tidak ada logging yang capture
+Urutan kronologis penuh (dengan timestamp UTC dan WIB) ada di 03-timeline.md. Ringkasnya: failed attempt dari 192.168.30.200 mulai sekitar 40 menit sebelum Wazuh pertama kali alert (terlihat di btmp), lalu dua successful login itstaff (satu sesi sangat singkat, satu aktif ~10 menit), lalu disconnect. Aktivitas selama sesi 10 menit itu tidak ter-capture log apa pun.
 
 **Status akhir:** akun itstaff berhasil di-compromise. Attacker ada di dalam SIEM server selama ~10 menit. Apa yang dilakukan selama sesi tersebut tidak bisa direkonstruksi dari evidence yang tersedia.
 
