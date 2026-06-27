@@ -71,7 +71,7 @@ lastlog -u itstaff
 sudo journalctl _UID=1001 --since "2026-04-01 11:15" --until "2026-04-01 11:30"
 ```
 
-![journalctl no entry](../evidence/evidence-05-journalctl-noentry.png)
+![journalctl no entry](../evidence/evidence-05-journalctl.png)
 *journalctl UID=1001 - no entries*
 
 Tidak ada entries. journalctl dengan filter UID=1001 tidak menemukan apapun untuk window waktu tersebut. Artinya aktivitas itstaff selama sesi tidak generate system journal entries yang ter-capture - command yang dijalankan tidak berinteraksi dengan systemd services atau tidak trigger logging di level journal.

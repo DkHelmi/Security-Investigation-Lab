@@ -1,6 +1,6 @@
 # INC-003 - Persistence via Scheduled Task
 
-**Status:** ✅ Completed
+**Status:** Completed
 **Periode:** 2 April 2026
 **Severity:** High
 

@@ -88,7 +88,7 @@ Konfirmasi dari last dan lastlog:
 **11:17:34 - 11:28:11 WIB (04:17:34 - 04:28:11 UTC) - Sesi Aktif ~10 Menit**
 - journalctl UID=1001: no entries
 
-![journalctl no entry](../evidence/evidence-05-journalctl-noentry.png)
+![journalctl no entry](../evidence/evidence-05-journalctl.png)
 *journalctl - tidak ada entries untuk UID=1001 selama window sesi*
 
 Tidak ada log yang capture aktivitas selama sesi berlangsung. Apa yang dilakukan selama ~10 menit ini tidak bisa direkonstruksi dari evidence yang tersedia.
