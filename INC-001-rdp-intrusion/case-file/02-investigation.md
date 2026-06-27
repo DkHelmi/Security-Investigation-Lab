@@ -132,15 +132,7 @@ Persistence ini tidak butuh admin privilege karena HKCU (per-user). Entry akan e
 
 ## Rekonstruksi Lengkap
 
-Dari semua evidence yang terkumpul:
-
-1. Password spray dari 192.168.30.200 ke WKS01 via SMB (07:17) → berhasil dapat `userAlpha`
-2. Masuk WKS01 via RDP menggunakan credential userAlpha (07:25)
-3. Lateral movement ke DC01 via WinRM (07:36)
-4. Domain recon di DC01 - enumerate Domain Admins dan user list
-5. Pasang persistence di HKCU Run key - `WindowsUpdateHelper` (07:46)
-6. Credential access attempt di DC01 → gagal, userAlpha bukan admin
-7. Attacker stuck, tidak ada aktivitas eskalasi lebih lanjut yang terdeteksi
+Urutan kronologis penuh, dari spray sampai attacker stuck, ada di 03-timeline.md. Ringkasnya: spray SMB berhasil dapat userAlpha, masuk via RDP ke WKS01, lateral movement ke DC01 via WinRM, domain recon, lalu pasang persistence Run key di WKS01. Credential dump di DC01 gagal karena userAlpha bukan admin.
 
 **Status akhir:** persistence aktif di WKS01, credentials userAlpha dan userBeta compromised, tapi Domain Admins tidak terdampak.
 
