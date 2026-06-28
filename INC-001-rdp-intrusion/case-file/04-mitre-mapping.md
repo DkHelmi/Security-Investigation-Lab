@@ -1,10 +1,5 @@
 # 04 - MITRE ATT&CK Mapping
 
-**Case:** INC-001-rdp-intrusion  
-**Investigator:** Hardhika Helmi  
-**Framework:** MITRE ATT&CK Enterprise v14
-
----
 
 ## Catatan Pendekatan
 

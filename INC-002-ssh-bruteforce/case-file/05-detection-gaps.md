@@ -1,10 +1,5 @@
 # 05 - Detection Gaps
 
-**Case:** INC-002-ssh-bruteforce  
-**Investigator:** Hardhika Helmi  
-**Catatan:** Ini bukan blame document. Ini honest assessment tentang apa yang missed, kenapa, dan apa yang perlu diperbaiki.
-
----
 
 ## Konteks
 

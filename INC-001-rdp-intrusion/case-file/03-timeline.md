@@ -1,10 +1,5 @@
 # 03 - Timeline
 
-**Case:** INC-001-rdp-intrusion  
-**Investigator:** Hardhika Helmi  
-**Disusun dari:** Wazuh alerts, Sysmon logs, Windows Event Log
-
----
 
 ## Catatan
 

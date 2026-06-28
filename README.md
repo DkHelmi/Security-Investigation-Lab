@@ -52,7 +52,7 @@ Setiap case berdiri sendiri, tidak ada dependency antar case. Masing-masing puny
 
 Investigasi selalu dimulai dari alert Wazuh. Saya tidak buka attacker logs atau tool output selama investigasi berjalan. Attacker POV disimpan terpisah di folder `attacker-logs/` per case sebagai referensi lab.
 
-Setiap case punya 5 file standar:
+Setiap case punya 5 file inti, dengan tambahan `06-alert-tuning` di case yang relevan:
 
 | File | Isi |
 |------|-----|
@@ -61,6 +61,7 @@ Setiap case punya 5 file standar:
 | 03-timeline | Kronologi event berdasarkan timestamp dari log dan alert |
 | 04-mitre-mapping | MITRE ATT&CK mapping dengan konteks spesifik dari case |
 | 05-detection-gaps | Apa yang missed, kenapa, dan rekomendasi perbaikan |
+| 06-alert-tuning | Custom Wazuh rule untuk menutup gap yang ditemukan (ada di INC-003 dan INC-004) |
 
 ---
 

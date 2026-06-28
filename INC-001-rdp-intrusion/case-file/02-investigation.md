@@ -1,10 +1,5 @@
 # 02 - Investigation
 
-**Case:** INC-001-rdp-intrusion  
-**Investigator:** Hardhika Helmi  
-**Status:** Active
-
----
 
 ## Starting Point
 

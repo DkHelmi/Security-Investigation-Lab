@@ -1,4 +1,4 @@
-# Attacker Logs — INC-003
+# Attacker Logs - INC-003
 
 > Catatan lab teknis. Ini bukan bagian dari investigasi, murni referensi untuk reproduksi lab.
 

@@ -1,10 +1,5 @@
 # 04 - MITRE ATT&CK Mapping
 
-**Case:** INC-002-ssh-bruteforce  
-**Investigator:** Hardhika Helmi  
-**Framework:** MITRE ATT&CK Enterprise v14
-
----
 
 ## Catatan Pendekatan
 

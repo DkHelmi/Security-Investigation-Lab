@@ -12,17 +12,17 @@
 
 ## Detail per Gap
 
-### Gap 1 — Initial Execution Invisible
+### Gap 1 - Initial Execution Invisible
 
-**Apa yang terjadi:** userBeta mengklik file (kemungkinan .lnk) di Desktop yang memicu `cmd.exe` secara hidden. `explorer.exe` spawn `cmd.exe` — tapi tidak ada satupun alert di Wazuh yang mencatat ini.
+**Apa yang terjadi:** userBeta mengklik file (kemungkinan .lnk) di Desktop yang memicu `cmd.exe` secara hidden. `explorer.exe` spawn `cmd.exe` - tapi tidak ada satupun alert di Wazuh yang mencatat ini.
 
 **Kenapa ini terjadi:** Wazuh rule 92052 (Windows command prompt started by abnormal process) hanya trigger untuk parent process tertentu yang dianggap "abnormal." `explorer.exe` → `cmd.exe` ternyata tidak masuk kategori ini, padahal ini salah satu vector paling umum untuk malicious LNK execution.
 
-**Impact:** Investigator tidak punya visibility ke trigger awal. Tanpa informasi ini, sulit menentukan apakah ini phishing, drive-by download, atau insider threat. Investigator harus pivot ke host forensics (cek Desktop userBeta, cek Recent Files, cek browser history) untuk mengisi gap ini — dan itu butuh waktu.
+**Impact:** Investigator tidak punya visibility ke trigger awal. Tanpa informasi ini, sulit menentukan apakah ini phishing, drive-by download, atau insider threat. Investigator harus pivot ke host forensics (cek Desktop userBeta, cek Recent Files, cek browser history) untuk mengisi gap ini - dan itu butuh waktu.
 
 **Rekomendasi:** Buat custom rule yang alert ketika `explorer.exe` spawn `cmd.exe` atau `powershell.exe` dengan argument mencurigakan (misalnya flag `/c`, `-WindowStyle Hidden`, atau URL di argument).
 
-### Gap 2 — Scheduled Task Creation Not Surfaced
+### Gap 2 - Scheduled Task Creation Not Surfaced
 
 **Apa yang terjadi:** Attacker membuat Scheduled Task untuk persistence (terlihat dari pattern execution berulang). Tapi Event ID 4698 (A scheduled task was created) tidak muncul sebagai alert di Wazuh.
 
@@ -32,7 +32,7 @@
 
 **Rekomendasi:** Tambahkan rule untuk Event ID 4698 dan 4699 (task deleted) dengan level minimal 10. Pastikan juga Sysmon dikonfigurasi untuk capture Event ID 1 dari `schtasks.exe` dan PowerShell `Register-ScheduledTask` cmdlet.
 
-### Gap 3 — Outbound Connection Not Detected
+### Gap 3 - Outbound Connection Not Detected
 
 **Apa yang terjadi:** `PolicyUpdate.exe` kemungkinan besar establish connection ke IP attacker (reverse shell atau C2). Tapi tidak ada alert untuk outbound network connection.
 
@@ -40,9 +40,9 @@
 
 **Impact:** Investigator tidak bisa menentukan apakah attacker sudah punya active session. Tidak ada informasi tentang destination IP/port untuk C2, durasi connection, atau volume data yang ditransfer.
 
-**Rekomendasi:** Enable Sysmon Event ID 3 dengan filter yang targeted — setidaknya capture connection dari proses non-standard ke port yang tidak biasa (4444, 8080, dll) atau ke IP external/non-corporate.
+**Rekomendasi:** Enable Sysmon Event ID 3 dengan filter yang targeted - setidaknya capture connection dari proses non-standard ke port yang tidak biasa (4444, 8080, dll) atau ke IP external/non-corporate.
 
-### Gap 4 — Payload Execution Not Specifically Alerted
+### Gap 4 - Payload Execution Not Specifically Alerted
 
 **Apa yang terjadi:** `PolicyUpdate.exe` di-execute setelah didownload, tapi tidak ada alert yang spesifik mengatakan "unknown executable dijalankan dari folder TEMP."
 
@@ -50,13 +50,13 @@
 
 **Impact:** Investigator tahu file didownload, tapi tidak punya konfirmasi bahwa file itu benar-benar dijalankan. Harus diasumsikan berdasarkan behavior chain.
 
-**Rekomendasi:** Buat rule untuk Sysmon Event ID 1 yang alert ketika process image berasal dari folder TEMP, Downloads, atau folder user-writable lainnya — terutama kalau file baru saja dibuat (korelasi dengan Event ID 11).
+**Rekomendasi:** Buat rule untuk Sysmon Event ID 1 yang alert ketika process image berasal dari folder TEMP, Downloads, atau folder user-writable lainnya - terutama kalau file baru saja dibuat (korelasi dengan Event ID 11).
 
-### Gap 5 — No Filename Masquerading Detection
+### Gap 5 - No Filename Masquerading Detection
 
 **Apa yang terjadi:** `PolicyUpdate.exe` adalah nama yang sengaja dibuat mirip software update. Tidak ada detection untuk ini.
 
-**Kenapa ini terjadi:** Filename masquerading detection butuh baseline — daftar nama proses legitimate vs yang seharusnya tidak ada. Ini lebih cocok di EDR daripada SIEM.
+**Kenapa ini terjadi:** Filename masquerading detection butuh baseline - daftar nama proses legitimate vs yang seharusnya tidak ada. Ini lebih cocok di EDR daripada SIEM.
 
 **Impact:** Rendah secara isolated, tapi berkontribusi ke kemampuan attacker untuk blend in.
 
@@ -66,4 +66,4 @@
 
 Dari 5 fase attack yang terjadi (initial access → execution → tool transfer → persistence → C2), Wazuh hanya effectively mendeteksi **execution dan tool transfer**. Initial access, persistence, dan C2 sepenuhnya invisible.
 
-Ini berarti kalau investigator hanya mengandalkan Wazuh, dia tahu "ada sesuatu yang mencurigakan terjadi" tapi tidak bisa menentukan bagaimana attacker masuk dan apakah attacker masih punya akses. Ini gap yang serius untuk incident response — responder tidak punya full picture tanpa forensic langsung di host.
+Ini berarti kalau investigator hanya mengandalkan Wazuh, dia tahu "ada sesuatu yang mencurigakan terjadi" tapi tidak bisa menentukan bagaimana attacker masuk dan apakah attacker masih punya akses. Ini gap yang serius untuk incident response - responder tidak punya full picture tanpa forensic langsung di host.

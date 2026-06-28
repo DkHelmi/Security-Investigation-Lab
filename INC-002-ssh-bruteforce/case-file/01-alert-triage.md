@@ -1,11 +1,5 @@
 # 01 - Alert Triage
 
-**Case:** INC-002-ssh-bruteforce  
-**Investigator:** Hardhika Helmi  
-**Started:** Apr 1, 2026 @ 11:15 WIB (berdasarkan timestamp alert pertama)  
-**Status:** Active
-
----
 
 ## Kenapa Case Ini Dibuka
 

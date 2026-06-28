@@ -1,10 +1,5 @@
 # 02 - Investigation
 
-**Case:** INC-002-ssh-bruteforce  
-**Investigator:** Hardhika Helmi  
-**Status:** Active
-
----
 
 ## Starting Point
 

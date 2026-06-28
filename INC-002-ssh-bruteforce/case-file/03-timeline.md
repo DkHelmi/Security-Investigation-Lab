@@ -1,10 +1,5 @@
 # 03 - Timeline
 
-**Case:** INC-002-ssh-bruteforce  
-**Investigator:** Hardhika Helmi  
-**Disusun dari:** Wazuh alerts, auth.log, last, wtmp, btmp
-
----
 
 ## Catatan Timezone
 

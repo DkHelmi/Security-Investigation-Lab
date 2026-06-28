@@ -1,11 +1,5 @@
 # 01 - Alert Triage
 
-**Case:** INC-001-rdp-intrusion  
-**Investigator:** Hardhika Helmi  
-**Started:** Mar 31, 2026 @ 07:17 (berdasarkan timestamp alert pertama)  
-**Status:** Active
-
----
 
 ## Kenapa Case Ini Dibuka
 
