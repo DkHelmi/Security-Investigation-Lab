@@ -24,20 +24,3 @@ SSH brute force (port 22) ke SIEM server (192.168.30.50). Credential itstaff ber
 | Login berhasil sebagai itstaff | ✅ Ya (alert 40112 level 12, 5501) |
 | Aktivitas selama sesi ~10 menit | ❌ Blind spot total - tidak ada log |
 
-## Folder Structure
-```
-INC-002-ssh-bruteforce/
-├── case-file/          # Investigator notes
-├── evidence/           # Screenshot investigator POV (Wazuh, auth.log, system logs)
-└── attacker-logs/      # Screenshot attacker POV (referensi lab)
-```
-
-## Case Files
-
-| File | Isi |
-|------|-----|
-| [01-alert-triage](./case-file/01-alert-triage.md) | Alert pertama, analisis pattern brute force, initial assessment |
-| [02-investigation](./case-file/02-investigation.md) | Pivot ke auth.log dan system logs, dua successful login, dead end aktivitas sesi |
-| [03-timeline](./case-file/03-timeline.md) | Kronologi berdasarkan Wazuh + host logs, catatan timezone UTC vs WIB |
-| [04-mitre-mapping](./case-file/04-mitre-mapping.md) | MITRE ATT&CK mapping - discovery tidak bisa di-confirm |
-| [05-detection-gaps](./case-file/05-detection-gaps.md) | Blind spot post-compromise, tidak ada fail2ban, rekomendasi |

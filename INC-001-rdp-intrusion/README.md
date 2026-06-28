@@ -26,20 +26,3 @@ Password spray via SMB (port 445) ke WKS01. Credentials `userAlpha:P@ssw0rd123!`
 | Persistence via registry Run key | ⚠️ Alert ada, missed saat triage |
 | Credential dump attempt | ⚠️ Attempt gagal (userAlpha bukan admin), partial alert dari artifact |
 
-## Folder Structure
-```
-INC-001-rdp-intrusion/
-├── case-file/          # Investigator notes
-├── evidence/           # Screenshot investigator POV (Wazuh, regedit)
-└── attacker-logs/      # Screenshot attacker POV (referensi lab)
-```
-
-## Case Files
-
-| File | Isi |
-|------|-----|
-| [01-alert-triage](./case-file/01-alert-triage.md) | Alert pertama, membedakan spray vs brute force, initial assessment |
-| [02-investigation](./case-file/02-investigation.md) | Pivot dari alert, rekonstruksi langkah demi langkah, dead ends |
-| [03-timeline](./case-file/03-timeline.md) | Kronologi berdasarkan timestamp Wazuh |
-| [04-mitre-mapping](./case-file/04-mitre-mapping.md) | MITRE ATT&CK mapping dengan konteks lab |
-| [05-detection-gaps](./case-file/05-detection-gaps.md) | Alert yang missed dan kenapa, rekomendasi perbaikan |

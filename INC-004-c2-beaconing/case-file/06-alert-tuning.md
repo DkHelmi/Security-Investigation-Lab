@@ -111,7 +111,7 @@ Pastikan ada rule untuk Event ID 3 (NetworkConnect). Kalau tidak ada, update sys
 
 **2. Cek Wazuh agent.conf:**
 
-Pastikan `Microsoft-Windows-Sysmon/Operational` sudah ada di agent.conf (dari CONTEXT_MASTER, ini sudah ada). Kalau Sysmon EID 3 tetap tidak muncul, kemungkinan perlu cek apakah ada filter di ossec.conf manager yang drop event tertentu.
+Pastikan `Microsoft-Windows-Sysmon/Operational` sudah ada di agent.conf (sudah terdaftar di konfigurasi agent lab, lihat lab-base/README.md). Kalau Sysmon EID 3 tetap tidak muncul, kemungkinan perlu cek apakah ada filter di ossec.conf manager yang drop event tertentu.
 
 ## Summary Rules Baru
 
